@@ -6,7 +6,9 @@
 
 class NBody {
  public:
+  double gravitationalConstant;
   //Constructors//
+  NBody();
   NBody(const std::vector<Particle> &particles, double gravitationalConstant);
 
   //Getters//
@@ -22,10 +24,10 @@ class NBody {
 
   void addParticle(Particle particle);
 
- private:
+ protected:
   std::vector<Particle> particles;
-  double gravitationalConstant;
 
+ private:
   vec3 CalculateGravitationalForce(Particle& particle1,
                                      Particle& particle2) const;
 };

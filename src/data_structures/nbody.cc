@@ -5,6 +5,10 @@ NBody::NBody(const std::vector<Particle>& particles,
     : particles{ particles }
     , gravitationalConstant{ gravitationalConstant }{}
 
+NBody::NBody()
+    : particles{}
+    , gravitationalConstant{1}{}
+
 void NBody::update(const double timestep){
   auto num_particles = particles.size();
 
