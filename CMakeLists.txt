@@ -28,4 +28,6 @@ add_executable(SCPD_Project
         tests/algorithms/Algorithm2_Test.cpp
         tests/test_utils.h
         tests/data_structures/nbody_test.cpp
-        include/data_structures/particle.h)
+        include/data_structures/particle.h
+        src/data_structures/nbody.cc
+)

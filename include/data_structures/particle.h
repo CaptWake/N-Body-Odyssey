@@ -67,18 +67,18 @@ class Particle {
 
   friend std::ostream& operator<<(std::ostream& os, const Particle& particle) {
     os << "Particle Information:\n";
-    os << "  Mass:          " << std::setw(15) << std::setprecision(5) << particle.GetMass() << " solar masses\n";
-    os << "  Radius:        " << std::setw(15) << std::setprecision(5) << particle.GetRadius() << " Hill radius\n";
-    os << "  Density:       " << std::setw(15) << std::setprecision(5) << particle.GetDensity() << " g/cm^3\n";
+    //os << "  Mass:          " << std::setw(15) << std::setprecision(5) << particle.GetMass() << " solar masses\n";
+    //os << "  Radius:        " << std::setw(15) << std::setprecision(5) << particle.GetRadius() << " Hill radius\n";
+    //os << "  Density:       " << std::setw(15) << std::setprecision(5) << particle.GetDensity() << " g/cm^3\n";
     os << "  Position (x,y,z):" << std::setw(15) << particle.GetPosition().x() << ", "
        << std::setw(15) << particle.GetPosition().y() << ", "
-       << std::setw(15) << particle.GetPosition().z() << " AU\n";
+       << std::setw(15) << particle.GetPosition().z() << "\n";
     os << "  Velocity (x,y,z):" << std::setw(15) << particle.GetVelocity().x() << ", "
        << std::setw(15) << particle.GetVelocity().y() << ", "
-       << std::setw(15) << particle.GetVelocity().z() << " AU/days\n";
+       << std::setw(15) << particle.GetVelocity().z() << "\n";
     os << "  Acceleration (x,y,z):" << std::setw(15) << particle.GetAcceleration().x() << ", "
        << std::setw(15) << particle.GetAcceleration().y() << ", "
-       << std::setw(15) << particle.GetAcceleration().z() << " [unknown]\n";
+       << std::setw(15) << particle.GetAcceleration().z() << "\n";
     return os;
   }
 

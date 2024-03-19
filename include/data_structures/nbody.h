@@ -6,22 +6,28 @@
 
 class NBody {
  public:
-  NBody(const std::vector<Particle> &particles, int end_time) : particles(particles), endTime(end_time) {}
-  const std::vector<Particle> &GetParticles() const {
-    return particles;
-  }
-  void SetParticles(const std::vector<Particle> &particles) {
-    this->particles = particles;
-  }
-  int GetEndTime() const {
-    return endTime;
-  }
-  void SetEndTime(int end_time) {
-    endTime = end_time;
-  }
+  //Constructors//
+  NBody(const std::vector<Particle> &particles, double gravitationalConstant);
+
+  //Getters//
+  const std::vector<Particle> &GetParticles() const {return particles;}
+
+  //Setters//
+  void SetParticles(const std::vector<Particle> &particles) {this->particles = particles;}
+
+  //Update//
+  void update(double timestep);
+
+  friend std::ostream& operator<<(std::ostream& os, const NBody& nbody);
+
+  void addParticle(Particle particle);
+
  private:
   std::vector<Particle> particles;
-  int endTime;
+  double gravitationalConstant;
+
+  vec3 CalculateGravitationalForce(Particle& particle1,
+                                     Particle& particle2) const;
 };
 
 #endif

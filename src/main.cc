@@ -1,7 +1,8 @@
 #include "../data_structures/particle.h"
 #include <vector>
+#include "../data_structures/nbody.h"
 
-vec3 CalculateGravitationalForce(const Particle& particle1, const Particle& particle2, double gravitational_constant) {
+/*vec3 CalculateGravitationalForce(const Particle& particle1, const Particle& particle2, double gravitational_constant) {
   // Gravitational constant (G)
   const double G = gravitational_constant;
 
@@ -40,10 +41,9 @@ void AllPairsSequential(std::vector<Particle>& particles, double timestep, doubl
     particles[i].SetPosition(particles[i].GetPosition() + timestep * particles[i].GetVelocity());
   }
 }
-
+*/
 int main() {
 
-  std::vector<Particle> particles;
 
   auto mercury = Particle(1.6601367952719304e7,
                           vec3(3.067925455119497e1, -2.695851754307215e-01, -5.017408038016835e-02),
@@ -62,23 +62,37 @@ int main() {
 
   std::cout << "================= TEST n.1 WITH ONE DIMENSION =================" << std::endl;
 
+  std::vector<Particle> particles;
   // Taking example from the following resource https://www.sciencefacts.net/gravitational-force.html
   auto earth = Particle(6e24, vec3(1.5e11, 0,0), vec3(0,0,0));
   auto sun = Particle(2e30, vec3(0,0,0), vec3(0,0,0));
-  auto f_hat = CalculateGravitationalForce(earth, sun, 6.6743e-11).length();
+  particles.push_back(earth);
+  particles.push_back(sun);
+  NBody simulation1 = NBody(particles, 1);
+  simulation1.update(0.01);
+  std::cout << simulation1 << std::endl;
+  particles.clear();
+
+  /*auto f_hat = CalculateGravitationalForce(earth, sun, 6.6743e-11).length();
 
   std::cout << "Estimated Gravitational Force: " << f_hat << std::endl;
 
   auto f_true = 3.5e22;
-  std::cout << "Expected Gravitational Force: " << f_true << std::endl;
+  std::cout << "Expected Gravitational Force: " << f_true << std::endl;*/
 
   std::cout << "================= TEST n.2 WITH ONE DIMENSION =================" << std::endl;
 
   earth = Particle(5.972e24, vec3(0, 0,0), vec3(0,0,0));
   auto moon = Particle(7.348e22, vec3( 3.844e8,0,0), vec3(0,0,0));
-  f_hat = CalculateGravitationalForce(earth, moon, 6.6743e-11).length();
+  particles.push_back(earth);
+  particles.push_back(moon);
+  NBody simulation2 = NBody(particles, 1);
+  simulation2.update(0.01);
+  std::cout << simulation2 << std::endl;
+  particles.clear();
 
-  std::cout << "Estimated Gravitational Force: " << f_hat << std::endl;
+  //f_hat = CalculateGravitationalForce(earth, moon, 6.6743e-11).length();
+  /*std::cout << "Estimated Gravitational Force: " << f_hat << std::endl;*/
 
   std::cout << "================= TEST ALL PAIRS ALGORITHM =================" << std::endl;
 
@@ -86,10 +100,14 @@ int main() {
   particles.emplace_back(6.66666667, vec3(1.14531129, 1.03719047, 1.88663893), vec3(-1.81881234, -0.13804934, 0.53983961));
   particles.emplace_back(6.66666667, vec3(-0.11169829, -0.36210134, 0.14867505), vec3(-1.77528229, 1.31487654, -0.47344805));
 
-  AllPairsSequential(particles, 0.01, 1.0);
+  NBody simulation = NBody(particles, 1);
+  simulation.update(0.01);
+  std::cout << simulation << std::endl;
+
+  /*AllPairsSequential(particles, 0.01, 1.0);
   for (auto& particle : particles) {
     std::cout << "Position: " << particle.GetPosition() << std::endl;
     std::cout << "Velocity: " << particle.GetVelocity() << std::endl;
-  }
+  }*/
   return 0;
 }
