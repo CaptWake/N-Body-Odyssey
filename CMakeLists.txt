@@ -31,7 +31,6 @@ add_executable(SCPD_Project
         src/algorithms/Parallel/Algorithm2_Parallel.cc
         src/algorithms/Sequential/Algorithm2_Sequential.cc
         src/algorithms/Sequential/all_pairs_sequential.cc
-        src/data_structures/DataStructure.cc
         src/utilities/Timer.cc
         src/utilities/UtilityFunctions.cc
         src/main.cc
@@ -40,6 +39,8 @@ add_executable(SCPD_Project
         tests/test_utils.h
         include/data_structures/particle.h
         src/data_structures/nbody.cc
+        include/simulation.h
+        include/utilities/data_format.h
 )
 
 add_executable(

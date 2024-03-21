@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Find all .cc files recursively
-cc_files=$(find . -name "*.cc")
+cc_files=$(find . -name "*.[cc|h]" -not -path "./cmake-build-debug/*/*/*")
 
 # Check if clang-format is available
 if ! command -v clang-format-17 &> /dev/null; then

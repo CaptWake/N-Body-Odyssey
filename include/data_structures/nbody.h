@@ -1,23 +1,26 @@
 #ifndef NBODY_H
 #define NBODY_H
 
-#include "particle.h"
 #include <vector>
+
+#include "particle.h"
 
 class NBody {
  public:
   double gravitationalConstant;
-  //Constructors//
+  // Constructors//
   NBody();
-  NBody(const std::vector<Particle> &particles, double gravitationalConstant);
+  NBody(const std::vector<Particle>& particles, double gravitationalConstant);
 
-  //Getters//
-  const std::vector<Particle> &GetParticles() const {return particles;}
+  // Getters//
+  const std::vector<Particle>& GetParticles() const { return particles; }
 
-  //Setters//
-  void SetParticles(const std::vector<Particle> &particles) {this->particles = particles;}
+  // Setters//
+  void SetParticles(const std::vector<Particle>& particles) {
+    this->particles = particles;
+  }
 
-  //Update//
+  // Update//
   void update(double timestep);
 
   friend std::ostream& operator<<(std::ostream& os, const NBody& nbody);
@@ -29,7 +32,7 @@ class NBody {
 
  private:
   vec3 CalculateGravitationalForce(Particle& particle1,
-                                     Particle& particle2) const;
+                                   Particle& particle2) const;
 };
 
 #endif
