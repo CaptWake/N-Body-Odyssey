@@ -30,8 +30,6 @@ add_executable(SCPD_Project
         include/utilities/data_format.h
         include/data_structures/sequential_ap.h
         src/data_structures/sequential_ap.cc
-        include/utilities/vector3D.cc
-        include/utilities/vector3D.h
 )
 
 add_executable(
@@ -42,8 +40,6 @@ add_executable(
         include/data_structures/body.h
         include/data_structures/sequential_ap.h
         src/data_structures/sequential_ap.cc
-        include/utilities/vector3D.cc
-        include/utilities/vector3D.h
 )
 
 target_link_libraries(

@@ -4,8 +4,7 @@
 #include <iomanip>
 #include <ostream>
 
-#include "../utilities/vec3.h"
-#include "vector3D.h"
+#include "vec3.h"
 
 class Body {
  private:
