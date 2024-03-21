@@ -24,20 +24,16 @@ add_executable(SCPD_Project
         include/algorithms/Algorithm1.h
         include/algorithms/Algorithm2.h
         include/data_structures/nbody.h
-        include/utilities/Timer.h
-        include/utilities/UtilityFunctions.h
         include/utilities/vec3.h
         src/algorithms/Parallel/Algorithm1_Parallel.cc
         src/algorithms/Parallel/Algorithm2_Parallel.cc
         src/algorithms/Sequential/Algorithm2_Sequential.cc
         src/algorithms/Sequential/all_pairs_sequential.cc
-        src/utilities/Timer.cc
-        src/utilities/UtilityFunctions.cc
         src/main.cc
         tests/algorithms/Algorithm1_Test.cpp
         tests/algorithms/Algorithm2_Test.cpp
         tests/test_utils.h
-        include/data_structures/particle.h
+        include/data_structures/body.h
         src/data_structures/nbody.cc
         include/simulation.h
         include/utilities/data_format.h
@@ -48,7 +44,7 @@ add_executable(
         tests/data_structures/nbody_test.cpp
         include/utilities/vec3.h
         include/data_structures/nbody.h
-        include/data_structures/particle.h
+        include/data_structures/body.h
         src/data_structures/nbody.cc
 )
 

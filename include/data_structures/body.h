@@ -6,7 +6,7 @@
 
 #include "../utilities/vec3.h"
 
-class Particle {
+class Body {
  private:
   double mass;
   double radius;
@@ -16,9 +16,9 @@ class Particle {
   vec3 acceleration;
 
  public:
-  Particle(double mass, const vec3 &position, const vec3 &velocity,
-           const vec3 &acceleration = {0, 0, 0}, double radius = 1,
-           double density = 1)
+  Body(double mass, const vec3 &position, const vec3 &velocity,
+       const vec3 &acceleration = {0, 0, 0}, double radius = 1,
+       double density = 1)
       : mass(mass),
         radius(radius),
         density(density),
@@ -41,8 +41,8 @@ class Particle {
     this->acceleration = acceleration;
   }
 
-  friend std::ostream &operator<<(std::ostream &os, const Particle &particle) {
-    os << "Particle Information:\n";
+  friend std::ostream &operator<<(std::ostream &os, const Body &particle) {
+    os << "Body Information:\n";
     // os << "  Mass:          " << std::setw(15) << std::setprecision(5) <<
     // particle.GetMass() << " solar masses\n"; os << "  Radius:        " <<
     // std::setw(15) << std::setprecision(5) << particle.GetRadius() << " Hill

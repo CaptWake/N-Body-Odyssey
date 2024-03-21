@@ -1,38 +1,44 @@
 #ifndef NBODY_H
 #define NBODY_H
 
+#include "body.h"
 #include <vector>
-
-#include "particle.h"
 
 class NBody {
  public:
-  double gravitationalConstant;
-  // Constructors//
-  NBody();
-  NBody(const std::vector<Particle>& particles, double gravitationalConstant);
+  virtual void update(double dt) = 0;  // Pure virtual method
+};
+
+class SequentialAPNBody : public NBody {
+ public:
+  SequentialAPNBody() {}
+  SequentialAPNBody(std::vector<Body>& bodies, double gravitationalConstant) {
+    this->bodies = bodies;
+    this->gravitationalConstant = gravitationalConstant;
+  }
 
   // Getters//
-  const std::vector<Particle>& GetParticles() const { return particles; }
+  const std::vector<Body>& GetBodies() const { return bodies; }
 
   // Setters//
-  void SetParticles(const std::vector<Particle>& particles) {
-    this->particles = particles;
+  void SetBodies(const std::vector<Body>& bodies) {
+    this->bodies = bodies;
   }
 
   // Update//
-  void update(double timestep);
+  void update(const double dt) override;
 
   friend std::ostream& operator<<(std::ostream& os, const NBody& nbody);
 
-  void addParticle(Particle particle);
+  void addBody(Body body);
 
  protected:
-  std::vector<Particle> particles;
+  std::vector<Body> bodies;
+  double gravitationalConstant;
 
  private:
-  vec3 CalculateGravitationalForce(Particle& particle1,
-                                   Particle& particle2) const;
+  vec3 CalculateGravitationalForce(Body& particle1,
+                                   Body& particle2) const;
 };
 
 #endif

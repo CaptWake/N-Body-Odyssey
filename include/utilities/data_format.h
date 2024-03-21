@@ -5,11 +5,11 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <particle.h>
+#include <body.h>
 #include "vec3.h"
 
-// Function to export particles information to CSV file
-void ExportToCSV(const std::vector<Particle>& data,
+// Function to export bodies information to CSV file
+void ExportToCSV(const std::vector<Body>& data,
                  const std::string& filename) {
   std::ofstream file(filename, std::ios_base::app);
   if (file.is_open()) {

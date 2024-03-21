@@ -5,7 +5,7 @@
 class NBodyTest : public testing::Test{
   protected:
     void SetUp() override {
-      std::vector<Particle> particles;
+      std::vector<Body> particles;
       particles.emplace_back(6.66666667,
                              vec3(0.27626589, -1.85462808, 0.62390111),
                              vec3(-0.43778315, 2.171257, 1.15231025));
@@ -31,7 +31,7 @@ TEST_F(NBodyTest, SuperMegaHardTest){
 
 TEST_F(NBodyTest, AllPairsTestPosition){
   simulation.update(0.01);
-  std::vector<Particle> estimated = simulation.GetParticles();
+  std::vector<Body> estimated = simulation.GetParticles();
   std::vector<vec3>  trueValues = {
       {0.27626589, -1.85462808, 0.62390111},
       {1.14531129, 1.03719047, 1.88663893},
