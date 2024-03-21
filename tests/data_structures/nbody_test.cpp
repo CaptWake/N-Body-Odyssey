@@ -1,5 +1,8 @@
 #include "nbody.h"
+
 #include <gtest/gtest.h>
+
+#include "sequential_ap.h"
 #include "vec3.h"
 
 class NBodyTest : public testing::Test{
@@ -21,17 +24,17 @@ class NBodyTest : public testing::Test{
     void TearDown() override{
     }
 
-    NBody simulation;
+    SequentialAP simulation;
 
 };
 
 TEST_F(NBodyTest, SuperMegaHardTest){
-  ASSERT_EQ(simulation.gravitationalConstant, 1);
+  ASSERT_EQ(simulation.G, 1);
 }
 
 TEST_F(NBodyTest, AllPairsTestPosition){
-  simulation.update(0.01);
-  std::vector<Body> estimated = simulation.GetParticles();
+  simulation.Update(0.01);
+  std::vector<Body> estimated = simulation.GetBodies();
   std::vector<vec3>  trueValues = {
       {0.27626589, -1.85462808, 0.62390111},
       {1.14531129, 1.03719047, 1.88663893},

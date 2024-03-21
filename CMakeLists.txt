@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.27)
 project(SCPD_Project)
 
 # GoogleTest requires at least C++14
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
@@ -21,22 +21,17 @@ include_directories(include/utilities)
 include_directories(tests)
 
 add_executable(SCPD_Project
-        include/algorithms/Algorithm1.h
-        include/algorithms/Algorithm2.h
         include/data_structures/nbody.h
         include/utilities/vec3.h
-        src/algorithms/Parallel/Algorithm1_Parallel.cc
-        src/algorithms/Parallel/Algorithm2_Parallel.cc
-        src/algorithms/Sequential/Algorithm2_Sequential.cc
-        src/algorithms/Sequential/all_pairs_sequential.cc
         src/main.cc
-        tests/algorithms/Algorithm1_Test.cpp
-        tests/algorithms/Algorithm2_Test.cpp
         tests/test_utils.h
         include/data_structures/body.h
-        src/data_structures/nbody.cc
         include/simulation.h
         include/utilities/data_format.h
+        include/data_structures/sequential_ap.h
+        src/data_structures/sequential_ap.cc
+        include/utilities/vector3D.cc
+        include/utilities/vector3D.h
 )
 
 add_executable(
@@ -45,7 +40,10 @@ add_executable(
         include/utilities/vec3.h
         include/data_structures/nbody.h
         include/data_structures/body.h
-        src/data_structures/nbody.cc
+        include/data_structures/sequential_ap.h
+        src/data_structures/sequential_ap.cc
+        include/utilities/vector3D.cc
+        include/utilities/vector3D.h
 )
 
 target_link_libraries(

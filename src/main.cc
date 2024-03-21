@@ -2,6 +2,6 @@
 
 int main() {
   auto simulation = Simulation();
-  simulation.start(10, 0.1);
+  simulation.start(0.03, 0.01);
   return 0;
 }
