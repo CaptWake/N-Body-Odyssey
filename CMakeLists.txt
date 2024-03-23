@@ -30,6 +30,7 @@ add_executable(SCPD_Project
         include/utilities/data_format.h
         include/data_structures/sequential_ap.h
         src/data_structures/sequential_ap.cc
+        include/utilities/time.h
 )
 
 add_executable(
