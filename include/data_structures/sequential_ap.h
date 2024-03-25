@@ -5,41 +5,40 @@
 #ifndef SEQUENTIALAP_H_
 #define SEQUENTIALAP_H_
 
+#include <cstdint>
+#include <iostream>
+#include <cmath>
+
 #include "nbody.h"
+
 class SequentialAP : public NBody {
   public:
-   SequentialAP() { G = 1;}
-   SequentialAP(std::vector<Body>& bodies, double gravitationalConstant) {
-     this->bodies = bodies;
-     this->G = gravitationalConstant;
-   }
-
-   // Getters//
-   const std::vector<Body>& GetBodies() const { return bodies; }
-
-   // Setters//
-   void SetBodies(const std::vector<Body>& in_bodies) {
-     bodies = in_bodies;
+   SequentialAP() { G=1; masses=nullptr; velocities=nullptr; positions=nullptr; n_bodies=0; }
+   SequentialAP(uint64_t n_bodies, float grav_const) {
+     this->n_bodies = n_bodies;
+     this->masses = new float[n_bodies];
+     this->positions = new float[n_bodies * 3];
+     this->velocities = new float[n_bodies * 3];
+     this->G = grav_const;
    }
 
    // Update//
-   void Update(double dt) override;
+   void Update(float dt) override;
 
    friend std::ostream& operator<<(std::ostream& os, const SequentialAP& nbody);
 
-   void AddBody(Body body);
+  ~SequentialAP() {
+    delete[] masses;
+    delete[] positions;
+    delete[] velocities;
+  }
 
-
-  protected:
-    std::vector<Body> bodies;
-    double G;
-
-  private:
-    void CalcAcc(Body& b1, Body& b2);
-    void UpdateAcc();
-    void UpdateVel(double dt);
-    void UpdatePos(double dt);
-
+  float *masses;
+  float *positions;
+  float *velocities;
+  uint64_t n_bodies;
+  // mass, position, velocity, <pad>, mass, position, velocity, <pad>
+  float G;
 };
 
-#endif  // SCPD_PROJECT_INCLUDE_DATA_STRUCTURES_SEQUENTIALAP_H_
+#endif

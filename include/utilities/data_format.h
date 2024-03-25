@@ -4,24 +4,20 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <vector>
-#include <body.h>
-#include "vec3.h"
 
 // Function to export bodies information to CSV file
-void ExportToCSV(const std::vector<Body>& data,
+void ExportToCSV(const float* data, const uint64_t n_bodies,
                  const std::string& filename) {
   std::ofstream file(filename, std::ios_base::app);
   if (file.is_open()) {
-    auto nParticles = data.size();
-    for (int i = 0; i < nParticles; ++i) {
-      auto point = data[i].GetPosition();
-      file << point.x() << "," << point.y() << "," << point.z();
-      if (i == nParticles - 1)
-        file << std::endl;
-      else
+    uint64_t i;
+    for (i = 0; i < n_bodies*3; i+=3) {
+      std::cout << data[i] << "," << data[i+1] << "," << data[i+2] << std::endl;
+      file << data[i] << "," << data[i+1] << "," << data[i+2];
+      if (i < n_bodies * 3 - 3)
         file << ",";
     }
+    file << std::endl;
     file.close();
   } else {
     std::cerr << "Unable to open file: " << filename << std::endl;

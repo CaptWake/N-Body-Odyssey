@@ -25,12 +25,11 @@ add_executable(SCPD_Project
         include/utilities/vec3.h
         src/main.cc
         tests/test_utils.h
-        include/data_structures/body.h
         include/simulation.h
         include/utilities/data_format.h
         include/data_structures/sequential_ap.h
         src/data_structures/sequential_ap.cc
-        include/utilities/time.h
+        include/utilities/time_utils.h
 )
 
 add_executable(
@@ -38,7 +37,6 @@ add_executable(
         tests/data_structures/nbody_test.cpp
         include/utilities/vec3.h
         include/data_structures/nbody.h
-        include/data_structures/body.h
         include/data_structures/sequential_ap.h
         src/data_structures/sequential_ap.cc
 )
