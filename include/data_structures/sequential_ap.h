@@ -22,6 +22,21 @@ class SequentialAP : public NBody {
      this->G = grav_const;
    }
 
+   //Move Constructor
+   SequentialAP& operator=(SequentialAP&& old) noexcept {
+       n_bodies=old.n_bodies;
+       masses=old.masses;
+       velocities=old.velocities;
+       positions=old.positions;
+       G=old.G;
+       old.masses = nullptr;
+       old.positions = nullptr;
+       old.velocities = nullptr;
+       return *this;
+   }
+
+
+
    // Update//
    void Update(float dt) override;
 

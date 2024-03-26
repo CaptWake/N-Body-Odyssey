@@ -55,7 +55,7 @@ class Simulation {
 
   void start(float time, float dt) {
     for (float t = 0.0; t < time; t += dt) {
-      ExportToCSV(this->simulation.positions, this->simulation.n_bodies, "/home/ste/Documents/SCPD-Project/src/results_correct.csv");
+      ExportToCSV(this->simulation.positions, this->simulation.n_bodies, "results_correct.csv");
       this->simulation.Update(dt);
     }
   }
