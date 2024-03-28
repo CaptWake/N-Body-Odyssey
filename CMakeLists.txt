@@ -41,6 +41,7 @@ add_executable(
         src/data_structures/sequential_ap.cc
 )
 
+
 target_link_libraries(
         NBody_test
         GTest::gtest_main

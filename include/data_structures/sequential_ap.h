@@ -22,6 +22,14 @@ class SequentialAP : public NBody {
      this->G = grav_const;
    }
 
+  SequentialAP(uint64_t n_bodies, float* masses, float* positions, float* velocities, float grav_const) {
+    this->n_bodies = n_bodies;
+    this->masses = masses;
+    this->positions = positions;
+    this->velocities = velocities;
+    this->G = grav_const;
+  }
+
    //Move Constructor
    SequentialAP& operator=(SequentialAP&& old) noexcept {
        n_bodies=old.n_bodies;
@@ -43,9 +51,9 @@ class SequentialAP : public NBody {
    friend std::ostream& operator<<(std::ostream& os, const SequentialAP& nbody);
 
   ~SequentialAP() {
-    delete[] masses;
-    delete[] positions;
-    delete[] velocities;
+    free(masses);
+    free(positions);
+    free(velocities);
   }
 
   float *masses;

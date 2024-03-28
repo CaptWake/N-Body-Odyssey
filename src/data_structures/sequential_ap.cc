@@ -12,19 +12,21 @@ void SequentialAP::Update(const float dt) {
     float fy = 0.0f;
     float fz = 0.0f;
     for (uint64_t j=0; j < this->n_bodies * 3; j+=3) {
-      auto m2_id= j/3;
-      // compute distance pair
-      auto dx = this->positions[j] - this->positions[i];
-      auto dy = this->positions[j+1] - this->positions[i+1];
-      auto dz = this->positions[j+2] - this->positions[i+2];
+      if (i != j) {
+        auto m2_id = j / 3;
+        // compute distance pair
+        auto dx = this->positions[j] - this->positions[i];
+        auto dy = this->positions[j + 1] - this->positions[i + 1];
+        auto dz = this->positions[j + 2] - this->positions[i + 2];
 
-      auto d = dx * dx + dy * dy + dz * dz + 1e-9f;
-      auto d_inv = 1.0f / sqrtf(d);
-      auto d_inv3 = d_inv * d_inv * d_inv;
+        auto d = dx * dx + dy * dy + dz * dz + 1e-9f;
+        auto d_inv = 1.0f / sqrtf(d);
+        auto d_inv3 = d_inv * d_inv * d_inv;
 
-      fx += d_inv3 * this->masses[m2_id] * dx;
-      fy += d_inv3 * this->masses[m2_id] * dy;
-      fz += d_inv3 * this->masses[m2_id] * dz;
+        fx += d_inv3 * this->masses[m2_id] * dx;
+        fy += d_inv3 * this->masses[m2_id] * dy;
+        fz += d_inv3 * this->masses[m2_id] * dz;
+      }
     }
 
     this->velocities[i]   += fx * dt;

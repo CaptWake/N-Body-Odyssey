@@ -17,7 +17,11 @@ class Simulation {
     //particles.emplace_back(1, vec3(-0, 0, 0), vec3(-0.93240737, -0.86473146,0));
     //particles.emplace_back(1, vec3(0.97000436, -0.24308753, 0), vec3(0.4662036850, 0.4323657300,0));
 
-
+    float *masses = nullptr, *positions = nullptr, *velocities = nullptr;
+    float grav_const;
+    auto n_bodies= LoadFromCSVConfiguration("/home/ste/Downloads/SolarSystem.csv", &masses, &positions, &velocities, grav_const);
+    this->simulation = SequentialAP(n_bodies, masses, positions, velocities, grav_const);
+/*
     this->simulation = SequentialAP(3, 1.0f);
     this->simulation.masses[0] = 1;
 
@@ -50,12 +54,12 @@ class Simulation {
     this->simulation.velocities[8] = 0;
 
     // randomizeBodies(this->simulation);
-
+*/
   }
 
   void start(float time, float dt) {
     for (float t = 0.0; t < time; t += dt) {
-      ExportToCSV(this->simulation.positions, this->simulation.n_bodies, "results_correct.csv");
+      ExportToCSV(this->simulation.positions, this->simulation.n_bodies, "/home/ste/Documents/SCPD-Project/src/results_correct.csv");
       this->simulation.Update(dt);
     }
   }
