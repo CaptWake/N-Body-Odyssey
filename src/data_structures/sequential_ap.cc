@@ -5,8 +5,6 @@
 // copyright NVIDIA
 
 void SequentialAP::Update(const float dt) {
-
-  std::cout << std::endl << std::endl;
   for (uint64_t i=0; i < this->n_bodies * 3; i+=3) {
     float fx = 0.0f;
     float fy = 0.0f;

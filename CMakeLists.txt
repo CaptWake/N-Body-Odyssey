@@ -20,6 +20,14 @@ include_directories(include/data_structures)
 include_directories(include/utilities)
 include_directories(tests)
 
+# fetch latest argparse
+include(FetchContent)
+FetchContent_Declare(
+        argparse
+        GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+)
+FetchContent_MakeAvailable(argparse)
+
 add_executable(SCPD_Project
         include/data_structures/nbody.h
         include/utilities/vec3.h
@@ -31,6 +39,8 @@ add_executable(SCPD_Project
         src/data_structures/sequential_ap.cc
         include/utilities/time_utils.h
 )
+
+target_link_libraries(SCPD_Project argparse)
 
 add_executable(
         NBody_test

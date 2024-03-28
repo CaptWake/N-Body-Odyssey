@@ -12,54 +12,21 @@
 class Simulation {
  public:
   Simulation() {
-
-    //particles.emplace_back(1, vec3(-0.97000436, 0.24308753, 0), vec3(0.4662036850, 0.4323657300,0));
-    //particles.emplace_back(1, vec3(-0, 0, 0), vec3(-0.93240737, -0.86473146,0));
-    //particles.emplace_back(1, vec3(0.97000436, -0.24308753, 0), vec3(0.4662036850, 0.4323657300,0));
-
-    float *masses = nullptr, *positions = nullptr, *velocities = nullptr;
-    float grav_const;
-    auto n_bodies= LoadFromCSVConfiguration("/home/ste/Downloads/SolarSystem.csv", &masses, &positions, &velocities, grav_const);
-    this->simulation = SequentialAP(n_bodies, masses, positions, velocities, grav_const);
-/*
-    this->simulation = SequentialAP(3, 1.0f);
-    this->simulation.masses[0] = 1;
-
-    this->simulation.positions[0] = -0.97000436;
-    this->simulation.positions[1] = 0.24308753;
-    this->simulation.positions[2] = 0;
-
-    this->simulation.velocities[0] = 0.4662036850;
-    this->simulation.velocities[1] = 0.4323657300;
-    this->simulation.velocities[2] = 0;
-
-    this->simulation.masses[1] = 1;
-
-    this->simulation.positions[3] = -0;
-    this->simulation.positions[4] = 0;
-    this->simulation.positions[5] = 0;
-
-    this->simulation.velocities[3] = -0.93240737;
-    this->simulation.velocities[4] = -0.86473146;
-    this->simulation.velocities[5] = 0;
-
-    this->simulation.masses[2] = 1;
-
-    this->simulation.positions[6] = 0.97000436;
-    this->simulation.positions[7] = -0.24308753;
-    this->simulation.positions[8] = 0;
-
-    this->simulation.velocities[6] = 0.4662036850;
-    this->simulation.velocities[7] = 0.4323657300;
-    this->simulation.velocities[8] = 0;
-
-    // randomizeBodies(this->simulation);
-*/
+    randomizeBodies(this->simulation);
   }
 
-  void start(float time, float dt) {
+ Simulation(const std::string& fname) {
+
+   float *masses = nullptr, *positions = nullptr, *velocities = nullptr;
+   float grav_const;
+   auto n_bodies= LoadFromCSVConfiguration(fname, &masses, &positions, &velocities, grav_const);
+   this->simulation = SequentialAP(n_bodies, masses, positions, velocities, grav_const);
+  }
+
+  void start(float time, float dt, const std::string& fname) {
     for (float t = 0.0; t < time; t += dt) {
-      ExportToCSV(this->simulation.positions, this->simulation.n_bodies, "/home/ste/Documents/SCPD-Project/src/results_correct.csv");
+      if (fname.length())
+        ExportToCSV(this->simulation.positions, this->simulation.n_bodies, fname);
       this->simulation.Update(dt);
     }
   }

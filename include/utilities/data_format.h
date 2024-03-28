@@ -13,7 +13,6 @@ void ExportToCSV(const float* data, const uint64_t n_bodies,
   if (file.is_open()) {
     uint64_t i;
     for (i = 0; i < n_bodies*3; i+=3) {
-      std::cout << data[i] << "," << data[i+1] << "," << data[i+2] << std::endl;
       file << data[i] << "," << data[i+1] << "," << data[i+2];
       if (i < n_bodies * 3 - 3)
         file << ",";
@@ -94,15 +93,10 @@ uint64_t LoadFromCSVConfiguration(const std::string& filename, float** masses, f
   *velocities = (float *) malloc(3*i * sizeof(float));
 
   for (uint64_t k = 0; k < 3*i; ++k) {
-    std::cout << "Mass: " << m[k/3] << std::endl;
     (*masses)[k/3] = m[k/3];
-    std::cout << "Position: " << p[k] << std::endl;
     (*positions)[k] = p[k];
-    std::cout << "Velocity: " << v[k] << std::endl;
     (*velocities)[k] = v[k];
   }
-  std::cout << "GRAVITY: " << grav_const << std::endl;
-  std::cout << "NBODIES: " << i << std::endl;
   return i;  // Return the number of particles loaded
 }
 
