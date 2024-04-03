@@ -7,30 +7,37 @@
 #include "data_format.h"
 #include "nbody.h"
 #include "sequential_ap.h"
+#include "sequential_ap_avx.h"
 
-// Implement the AllPairsSimulation subclass
 class Simulation {
  public:
-  Simulation() {
-    randomizeBodies(this->simulation);
+  Simulation() = default;
+
+  Simulation(const std::string& mode, const std::string& fname) {
+   if (mode == "SEQ") {
+     this->sim_ap_seq = SequentialAP(fname);
+   } else if (mode == "SEQ_AVX") {
+     this->sim_ap_avx_seq = SequentialAPAVX(fname);
+   }
+   this->mode = mode;
   }
 
- Simulation(const std::string& fname) {
-
-   float *masses = nullptr, *positions = nullptr, *velocities = nullptr;
-   float grav_const;
-   auto n_bodies= LoadFromCSVConfiguration(fname, &masses, &positions, &velocities, grav_const);
-   this->simulation = SequentialAP(n_bodies, masses, positions, velocities, grav_const);
-  }
-
-  void start(float time, float dt, const std::string& fname) {
+  void start(float time, float dt, const std::string& fname="") {
     for (float t = 0.0; t < time; t += dt) {
-      if (fname.length())
-        ExportToCSV(this->simulation.positions, this->simulation.n_bodies, fname);
-      this->simulation.Update(dt);
+      if (this->mode == "SEQ") {
+        if (!fname.empty())
+          this->sim_ap_seq.LogsToCSV(fname);
+        this->sim_ap_seq.Update(dt);
+      }
+      else if (this->mode == "SEQ_AVX") {
+        if (!fname.empty())
+          this->sim_ap_avx_seq.LogsToCSV(fname);
+        this->sim_ap_avx_seq.Update(dt);
+      }
     }
   }
 
+  /*
   void randomizeBodies(SequentialAP& nBody) {
       auto scale = std::max<float>(1.0f, nBody.n_bodies / (1024.0f));
 
@@ -68,11 +75,11 @@ class Simulation {
         i+=3;
       }
   }
-
-
- private:
-  SequentialAP simulation;
-  //std::unique_ptr<NBody> simulation;
+  */
+ protected:
+  SequentialAP sim_ap_seq;
+  SequentialAPAVX sim_ap_avx_seq;
+  std::string mode;
 };
 
 // Implement the AllPairsSimulation subclass

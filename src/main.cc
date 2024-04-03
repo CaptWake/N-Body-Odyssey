@@ -1,15 +1,16 @@
-#include "../include/simulation.h"
+#include "simulation.h"
+#include "time_utils.h"
 #include <argparse/argparse.hpp>
 
 int main(int argc, char** argv) {
-  argparse::ArgumentParser program("test");
+  argparse::ArgumentParser program("N-Body-Simulator");
   program.add_argument("-a", "--algorithm")
       .default_value(std::string{"AP"})
       .choices("AP", "BH")
       .help("specify the algorithm");
   program.add_argument("-m", "--mode")
       .default_value(std::string{"SEQ"})
-      .choices("SEQ", "CUDA", "OMP")
+      .choices("SEQ", "SEQ_AVX", "CUDA", "OMP")
       .help("specify the simulation mode");
   program.add_argument("-i", "--input")
       .default_value(std::string{""})
@@ -29,15 +30,22 @@ int main(int argc, char** argv) {
 
   Simulation simulation;
 
-  if (program.is_used("-i")) {
-    simulation = Simulation(program.get<std::string>("-i"));
-  }
-  simulation.start(100, 0.01, program.get<std::string>("-o"));
-  //auto color = program.get<std::string>("--color");  // "orange"
-  //auto explicit_color = program.is_used("--color");  // true, user provided orange
-  //std::cout << color << std::endl;
+  //if (program.is_used("-i")) {
+  //  simulation = Simulation(program.get<std::string>("-m"), program.get<std::string>("-i"));
+  //}
+  simulation = Simulation("SEQ", program.get<std::string>("-i"));
+  TIMERSTART(SEQUENTIAL)
+  simulation.start(10, 0.01);
+  TIMERSTOP(SEQUENTIAL)
 
-  //auto simulation = Simulation();
-  //simulation.start(100, 0.01);
+  // -xAVX2 and -xMIC-AVX512 flags force the compiler to generate AVX2
+  //and AVX-512 SIMD instructions, respectively. AVX2 extensions accelerated the previous version by a factor of 7.4×
+  //while AVX-512 instructions achieved a speedup of 15.1×
+  // http://sedici.unlp.edu.ar/bitstream/handle/10915/95855/Documento_completo.pdf?sequence=1
+  simulation = Simulation("SEQ_AVX", program.get<std::string>("-i"));
+  TIMERSTART(SEQUENTIAL_AVX)
+  simulation.start(10, 0.01);
+  TIMERSTOP(SEQUENTIAL_AVX)
+
   return 0;
 }

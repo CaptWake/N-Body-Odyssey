@@ -28,6 +28,9 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(argparse)
 
+# Enable AVX on AMD
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+
 add_executable(SCPD_Project
         include/data_structures/nbody.h
         include/utilities/vec3.h
@@ -37,6 +40,8 @@ add_executable(SCPD_Project
         include/utilities/data_format.h
         include/data_structures/sequential_ap.h
         src/data_structures/sequential_ap.cc
+        include/data_structures/sequential_ap_avx.h
+        src/data_structures/sequential_ap_avx.cc
         include/utilities/time_utils.h
 )
 
