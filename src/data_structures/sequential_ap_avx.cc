@@ -187,7 +187,7 @@ void SequentialAPAVX::LoadFromCSVConfiguration(const std::string &filename) {
         std::cerr << "Unable to open file: " << filename << std::endl;
     }
 }
-void SequentialAPAVX::LogsToCSV(const std::string &filename) {
+void SequentialAPAVX::LogsToCSV(const std::string &filename) const {
     std::ofstream file(filename, std::ios_base::app);
     if (file.is_open()) {
       for (uint64_t i = 0; i < n_bodies; ++i) {

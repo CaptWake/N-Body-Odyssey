@@ -53,7 +53,7 @@ std::ostream &operator<<(std::ostream &os, const SequentialAP &nbody) {
   }
   return os;
 }
-void SequentialAP::LogsToCSV(const std::string &filename) {
+void SequentialAP::LogsToCSV(const std::string &filename) const {
   std::ofstream file(filename, std::ios_base::app);
   if (file.is_open()) {
     uint64_t i;

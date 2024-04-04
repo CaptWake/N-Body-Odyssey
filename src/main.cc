@@ -2,6 +2,28 @@
 #include "time_utils.h"
 #include <argparse/argparse.hpp>
 
+#include "quadtree.h"
+
+// Recursive function to print each node
+void printNodes(const node& currentNode, const node_id& currentId)
+{
+  // Print the current node ID
+  std::cout << "Node ID: " << currentId << std::endl;
+
+  // Iterate over children and recursively print them
+  for (int i = 0; i < 2; ++i) {
+    for (int j = 0; j < 2; ++j) {
+      for (int k = 0; k < 2; ++k) {
+        node_id childId = currentNode.children[i][j][k];
+        if (childId != null) {
+          // Print the child node
+          std::cout << "Child[" << i << "][" << j << "][" << k << "]: " << childId << std::endl;
+        }
+      }
+    }
+  }
+}
+
 int main(int argc, char** argv) {
   argparse::ArgumentParser program("N-Body-Simulator");
   program.add_argument("-a", "--algorithm")
@@ -33,19 +55,22 @@ int main(int argc, char** argv) {
   //if (program.is_used("-i")) {
   //  simulation = Simulation(program.get<std::string>("-m"), program.get<std::string>("-i"));
   //}
-  simulation = Simulation("SEQ", program.get<std::string>("-i"));
-  TIMERSTART(SEQUENTIAL)
-  simulation.start(10, 0.01);
-  TIMERSTOP(SEQUENTIAL)
+  //simulation = Simulation("SEQ", program.get<std::string>("-i"));
+  //TIMERSTART(SEQUENTIAL)
+  //simulation.start(10, 0.01, "/home/ste/Documents/test1.csv");
+  //TIMERSTOP(SEQUENTIAL)
 
   // -xAVX2 and -xMIC-AVX512 flags force the compiler to generate AVX2
   //and AVX-512 SIMD instructions, respectively. AVX2 extensions accelerated the previous version by a factor of 7.4×
   //while AVX-512 instructions achieved a speedup of 15.1×
   // http://sedici.unlp.edu.ar/bitstream/handle/10915/95855/Documento_completo.pdf?sequence=1
-  simulation = Simulation("SEQ_AVX", program.get<std::string>("-i"));
-  TIMERSTART(SEQUENTIAL_AVX)
-  simulation.start(10, 0.01);
-  TIMERSTOP(SEQUENTIAL_AVX)
+  //simulation = Simulation("SEQ_AVX", program.get<std::string>("-i"));
+  //TIMERSTART(SEQUENTIAL_AVX)
+  //simulation.start(10, 0.01, "/home/ste/Documents/test2.csv");
+  //TIMERSTOP(SEQUENTIAL_AVX)
+
+  auto tree = build({{1,1, 2}, {2,5, 7}, {7, 6, 4}});
+  printNodes(tree.nodes[0], 0);
 
   return 0;
 }

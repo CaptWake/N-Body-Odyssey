@@ -1,14 +1,9 @@
-//
-// Created by ste on 31/03/24.
-//
-
 #ifndef SEQUENTIAL_AP_AVX_H_
 #define SEQUENTIAL_AP_AVX_H_
 
-
 #include <cstdint>
 #include <iostream>
-
+#include <random>
 #include "nbody.h"
 
 class SequentialAPAVX: NBody {
@@ -29,28 +24,37 @@ class SequentialAPAVX: NBody {
     LoadFromCSVConfiguration(fname);
   }
 
+  // generate random samples
   SequentialAPAVX(uint64_t n_bodies, float grav_const) {
-    this->n_bodies = n_bodies;
-    this->m = new float[n_bodies];
-    this->px = new float[n_bodies];
-    this->py = new float[n_bodies];
-    this->pz = new float[n_bodies];
-    this->vx = new float[n_bodies];
-    this->vy = new float[n_bodies];
-    this->vz = new float[n_bodies];
-    this->G = grav_const;
-  }
+    static std::random_device rd; // random device engine, usually based on /dev/random on UNIX-like systems
+    // initialize Mersennes' twister using rd to generate the seed
+    static std::mt19937 engine{0};//rd()};
+    std::uniform_real_distribution<float> density(-1, 1);
 
-  SequentialAPAVX(uint64_t n_bodies, float* m, float* px, float* py, float* pz, float* vx, float* vy, float* vz, float grav_const) {
     this->n_bodies = n_bodies;
-    this->m = m;
-    this->px = px;
-    this->py = py;
-    this->pz = pz;
-    this->vx = vx;
-    this->vy = vy;
-    this->vz = vz;
+
+    // rounds the number of slots to multiple of 8
+    uint64_t n_slots = 8 * floor(n_bodies / 8 + 1);
+
+    this->m  = static_cast<float *>(_mm_malloc(n_slots * sizeof(float), 32));
+    this->px = static_cast<float *>(_mm_malloc(n_slots * sizeof(float), 32));
+    this->py = static_cast<float *>(_mm_malloc(n_slots * sizeof(float), 32));
+    this->pz = static_cast<float *>(_mm_malloc(n_slots * sizeof(float), 32));
+    this->vx = static_cast<float *>(_mm_malloc(n_slots * sizeof(float), 32));
+    this->vy = static_cast<float *>(_mm_malloc(n_slots * sizeof(float), 32));
+    this->vz = static_cast<float *>(_mm_malloc(n_slots * sizeof(float), 32));
     this->G = grav_const;
+
+    for (uint64_t i = 0; i < n_bodies; ++i) {
+      this->m[i]  = (float)engine();
+      this->px[i] = (float)engine();
+      this->py[i] = (float)engine();
+      this->pz[i] = (float)engine();
+      this->vx[i] = (float)engine();
+      this->vy[i] = (float)engine();
+      this->vz[i] = (float)engine();
+    }
+
   }
 
   //Move Constructor
@@ -77,7 +81,7 @@ class SequentialAPAVX: NBody {
   void LoadFromCSVConfiguration(const std::string& filename);
 
   // Function to export bodies information to CSV file
-  void LogsToCSV(const std::string& filename);
+  void LogsToCSV(const std::string& filename) const;
 
   // Update//
   void Update(float dt) override;

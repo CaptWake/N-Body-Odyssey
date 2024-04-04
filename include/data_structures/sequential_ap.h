@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <iostream>
+#include <random>
 #include "nbody.h"
 
 class SequentialAP : public NBody {
@@ -17,21 +18,31 @@ class SequentialAP : public NBody {
       LoadFromCSVConfiguration(fname);
     }
 
-   SequentialAP(uint64_t n_bodies, float grav_const) {
-     this->n_bodies = n_bodies;
-     this->masses = new float[n_bodies];
-     this->positions = new float[n_bodies * 3];
-     this->velocities = new float[n_bodies * 3];
-     this->G = grav_const;
-   }
+    // generate random samples
+    SequentialAP(uint64_t n_bodies, float grav_const) {
+      static std::random_device rd; // random device engine, usually based on /dev/random on UNIX-like systems
+      // initialize Mersennes' twister using rd to generate the seed
+      static std::mt19937 engine{0};//rd()};
+      std::uniform_real_distribution<float> density(-1, 1);
 
-  SequentialAP(uint64_t n_bodies, float* masses, float* positions, float* velocities, float grav_const) {
-    this->n_bodies = n_bodies;
-    this->masses = masses;
-    this->positions = positions;
-    this->velocities = velocities;
-    this->G = grav_const;
-  }
+      this->n_bodies   = n_bodies;
+      this->masses     = new float[n_bodies];
+      this->positions  = new float[n_bodies*3];
+      this->velocities = new float[n_bodies*3];
+      this->G = grav_const;
+
+      for (uint64_t i = 0; i < n_bodies*3; i+=3) {
+        this->masses[i/3]     = (float)engine();
+
+        this->positions[i]    = (float)engine();
+        this->positions[i+1]  = (float)engine();
+        this->positions[i+2]  = (float)engine();
+
+        this->velocities[i]   = (float)engine();
+        this->velocities[i+1] = (float)engine();
+        this->velocities[i+2] = (float)engine();
+      }
+    }
 
    //Move Constructor
    SequentialAP& operator=(SequentialAP&& old) noexcept {
@@ -49,7 +60,7 @@ class SequentialAP : public NBody {
   void LoadFromCSVConfiguration(const std::string& filename);
 
   // Function to export bodies information to CSV file
-  void LogsToCSV(const std::string& filename);
+  void LogsToCSV(const std::string& filename) const;
 
    // Update//
    void Update(float dt) override;
