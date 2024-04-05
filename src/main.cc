@@ -51,9 +51,9 @@ int main(int argc, char** argv) {
   //if (program.is_used("-i")) {
   //  simulation = Simulation(program.get<std::string>("-m"), program.get<std::string>("-i"));
   //}
-  //simulation = Simulation("SEQ", program.get<std::string>("-i"));
+  //simulation = Simulation("SEQ", R"(D:\universita\SCPD\project1\input.csv)");
   //TIMERSTART(SEQUENTIAL)
-  //simulation.start(10, 0.01, "/home/ste/Documents/test1.csv");
+  //simulation.start(10, 0.01, "");
   //TIMERSTOP(SEQUENTIAL)
 
   // -xAVX2 and -xMIC-AVX512 flags force the compiler to generate AVX2
@@ -64,9 +64,14 @@ int main(int argc, char** argv) {
   //TIMERSTART(SEQUENTIAL_AVX)
   //simulation.start(10, 0.01, "/home/ste/Documents/test2.csv");
   //TIMERSTOP(SEQUENTIAL_AVX)
-
-  auto tree = build({{1, 1, 2}, {2,5, 7}, {7, 6, 4}}, {3,2,1});
-  printNodes(tree.nodes[0], 0);
+  std::vector<float> m;
+  std::vector<vec3> p;
+  std::vector<vec3> v;
+  LoadFromCSVConfiguration(R"(D:\universita\SCPD\project1\input.csv)", m, p, v);
+  for (int i = 0; i < 300; ++i) {
+    update(p, m, v, 0.01f);
+    std::cout << p[0] << "; " << p[1] << "; " << p[2] << std::endl;
+  }
 
   return 0;
 }

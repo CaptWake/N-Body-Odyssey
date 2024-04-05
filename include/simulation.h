@@ -15,7 +15,7 @@ class Simulation {
 
   Simulation(const std::string& mode, const std::string& fname) {
    if (mode == "SEQ") {
-     this->sim_ap_seq = SequentialAP(512, 1.0f); // SequentialAP(fname);
+     this->sim_ap_seq = SequentialAP(fname); // SequentialAP(fname);
    } else if (mode == "SEQ_AVX") {
      this->sim_ap_avx_seq = SequentialAPAVX(512, 1.0f); // SequentialAPAVX(fname);
    }

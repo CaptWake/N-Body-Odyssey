@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <memory>
 #include <cstdint>
+#include <fstream>
 #include "vec3.h"
 
 using node_id = std::uint64_t;
@@ -28,6 +29,7 @@ struct box {
     max[0] = std::max(max.x(), p.x());
     max[1] = std::max(max.y(), p.y());
     max[2] = std::max(max.z(), p.z());
+    return *this;
   }
 };
 
@@ -46,6 +48,7 @@ point middle(point const& p1, point const& p2) {
 
 struct node {
   float mass{0.f};
+  float size{0.f};
   vec3 center{0.f, 0.f, 0.f};
   // why not storing children in a unique array like that: children[8] ?
   //node_id children[2][2][2] {{{null, null},{null, null}},
@@ -60,6 +63,7 @@ struct quadtree {
   std::vector<node> nodes;
   std::vector<float> masses;
   std::vector<point> points;
+  std::vector<point> velocities;
   //std::vector<std::uint64_t> node_points_begin;
 };
 
@@ -71,9 +75,10 @@ node_id build_impl(quadtree& tree, box const& bbox, Iterator begin, Iterator end
   node_id result = tree.nodes.size();
   tree.nodes.emplace_back();
 
+  tree.nodes[result].size = bbox.max.x() - bbox.min.x();
   if (begin + 1 == end) {
     auto id = begin - tree.points.begin();
-    tree.nodes[result].mass += tree.masses[id];
+    tree.nodes[result].mass = 1.0f;//tree.masses[id];
     tree.nodes[result].center = tree.points[id];
     return result;
   }
@@ -130,38 +135,38 @@ node_id build_impl(quadtree& tree, box const& bbox, Iterator begin, Iterator end
 
     if (child_id != null) {
       tree.nodes[result].mass += tree.nodes[child_id].mass;
-      sum += tree.nodes[child_id].center;
+      sum += tree.nodes[child_id].center * tree.nodes[child_id].mass;
       i++;
     }
   }
-  tree.nodes[result].center = sum / i;
+  tree.nodes[result].center = sum / tree.nodes[result].mass ;
   return result;
 }
 
 quadtree build(std::vector<point> points, std::vector<float> masses) {
   quadtree result;
-  result.points = std::move(points);
-  result.masses = std::move(masses);
-  result.root = build_impl(result, bbox(result.points.begin(), result.points.end()), result.points.begin(), result.points.end());
+  result.root = build_impl(result, bbox(points.begin(), points.end()), points.begin(), points.end());
   return result;
 }
 
 vec3 force_at(quadtree& tree, point const& p, uint64_t id) {
-  auto const & n = tree.nodes[id];
+  if(id != 0) {
+    auto const &n = tree.nodes[id];
 
-  // TODO fix this error
-  if (n.center == p)
-    return vec3{0.f, 0.f, 0.f};
+    if (n.center == p)
+      return vec3{0.f, 0.f, 0.f};
 
-  vec3 d = p - n.center;
+    vec3 d = n.center - p;
 
-  auto l = d.length();
+    auto l = d.x() * d.x() + d.y() * d.y() + d.z() * d.z() + 1e-9f;
+    auto d_inv = 1.0f / sqrtf(l);
+    auto d_inv3 = d_inv * d_inv * d_inv;
 
-  if (n.mass == 1.f || l > n.size * theta)
-    return n.mass * d / std::pow(std::max(l, 0.001f), 3.f);
+    if (d.length() > n.size * 1)
+      return n.mass * d * d_inv3;
 
+  }
   vec3 sum{0.f, 0.f, 0.f};
-
   for (auto child_id: tree.nodes[id].children) {
       if (child_id != null)
         sum += force_at(tree, p, child_id);
@@ -170,39 +175,70 @@ vec3 force_at(quadtree& tree, point const& p, uint64_t id) {
   return sum;
 };
 
-
-// for (int iteration = 0; iteration < iterations; ++iteration) {
-
-//  for (std::size_t i = 0; i < points.size(); ++i)
-//    delta[i] += 2.f * potential * (origin - points[i]);
-
-  // Barnes-Hut algorithm
-void update(quadtree& tree, float dt) {
-  std::vector<vec3> delta;
-  std::vector<float> velocities;
-  for (auto i = 0; i < tree.points.size(); ++i)
-    delta[i] += force_at(tree, tree.points[i], 0);
-
-  for (std::size_t i = 0; i < tree.points.size(); ++i) {
+void update(std::vector<point>& points, std::vector<float>& masses, std::vector<vec3>& velocities, float dt) {
+  std::vector<vec3> delta{points.size(), {0,0,0}};
+  quadtree tree = build(points, masses);
+  for (auto i = 0; i < points.size(); ++i){
+    delta[i] = force_at(tree, points[i], 0);
     velocities[i] += delta[i] * dt;
+  }
+
+  for (std::size_t i = 0; i < points.size(); ++i) {
     points[i] += velocities[i] * dt;
   }
 }
 
-/*
-Function compute mass distribution() is
-24: if new particles == 1 then
-25: center of mass = particle.position
-26: mass = particle.mass
-27: else
-28: forall child quadrants with particles do
-29: quadrant.compute mass distribution
-30: mass += quadrant.mass
-31: center of mass = quadrant.mass * quadrant.center of mass
-32: center of mass /= mass
-*/
+void LoadFromCSVConfiguration(const std::string &filename, std::vector<float>& m, std::vector<vec3>& p, std::vector<vec3>& v) {
+  std::ifstream file(filename);
+  if (!file.is_open()) {
+    std::cerr << "Cannot find configuration file at: " << filename << std::endl;
+    exit(1);
+  }
 
-// BHTreeNode::GetQuadrant(double x, double y) const
-// void BHTreeNode::ComputeMassDistribution()
+  std::string line;
+  uint64_t i = 0;
+
+  // Assuming the header is not present
+
+  std::getline(file, line);
+  std::istringstream iss(line);
+  std::string token;
+  std::getline(iss, token);
+  // Get the gravitational constant (first line)
+  float G = std::stof(token);
+
+  while (std::getline(file, line)) {
+    iss = std::istringstream(line);
+    // Read particle data from CSV fields
+    float mass, x, y, z, vx, vy, vz;
+    // Read and parse comma-separated values
+    std::getline(iss, token, ',');
+    mass = std::stof(token);
+
+    std::getline(iss, token, ',');
+    x = std::stof(token);
+
+    std::getline(iss, token, ',');
+    y = std::stof(token);
+
+    std::getline(iss, token, ',');
+    z = std::stof(token);
+
+    std::getline(iss, token, ',');
+    vx = std::stof(token);
+
+    std::getline(iss, token, ',');
+    vy = std::stof(token);
+
+    std::getline(iss, token, ',');
+    vz = std::stof(token);
+
+    m.push_back(mass);
+    p.emplace_back(x,y,z);
+    v.emplace_back(vx, vy, vz);
+    i++;
+  }
+  file.close();
+}
 
 #endif
