@@ -31,7 +31,7 @@ struct box {
     min.z = std::min(min.z, p.z);
     max.x = std::max(max.x, p.x);
     max.y = std::max(max.y, p.y);
-    min.z = std::max(max.z, p.z);
+    max.z = std::max(max.z, p.z);
   }
 };
 
@@ -49,31 +49,37 @@ point middle(point const& p1, point const& p2) {
 }
 
 struct node {
-  node_id children[2][2][2] {{{null, null},{null, null}},
-      {{null, null},{null, null}}};
+  float mass = 0.f;
+  // why not storing children in a unique array like that: children[8] ?
+  //node_id children[2][2][2] {{{null, null},{null, null}},
+  //    {{null, null},{null, null}}};
+  node_id children[8] = {null, null, null, null,
+      null, null, null, null};
 };
 
 struct quadtree {
   box bbox;
-  node_id root = 0;
+  node_id root;
   std::vector<node> nodes;
   std::vector<float> masses;
   std::vector<point> points;
-  std::vector<std::uint64_t> node_points_begin;
+  //std::vector<std::uint64_t> node_points_begin;
 };
 
 template <typename  Iterator>
+// [begin, end) is the sequence of points to build the quadtree on.
 node_id build_impl(quadtree& tree, box const& bbox, Iterator begin, Iterator end) {
   if (begin == end) return null;
 
   node_id result = tree.nodes.size();
   tree.nodes.emplace_back();
 
-  if (std::equal(begin + 1, end, begin)) return result;
+  if (begin + 1 == end) {
+    auto id = begin - tree.points.begin();
+    tree.nodes[result].mass += tree.masses[id];
+    return result;
+  }
 
-  if (begin + 1 == end) return result;
-
-  tree.node_points_begin[result] = (begin - tree.points.begin());
   point center = middle(bbox.min, bbox.max);
 
   auto bottom = [center](point const& p) { return p.y < center.y; };
@@ -93,23 +99,45 @@ node_id build_impl(quadtree& tree, box const& bbox, Iterator begin, Iterator end
   Iterator split_x_back_lower = std::partition(split_z, split_y_back, left);
   Iterator split_x_back_upper = std::partition(split_y_back, end, left);
 
-  tree.nodes[result].children[0][0][0] = build_impl(tree, { {bbox.min.x, center.y, bbox.min.z}, {bbox.max.x, center.y, bbox.min.z} }, begin, split_x_front_lower);
-  tree.nodes[result].children[0][0][1] = build_impl(tree, { {center.x, bbox.min.y, bbox.min.z}, {bbox.max.x, center.y, center.z} }, split_x_front_lower, split_y_front);
-  tree.nodes[result].children[0][1][0] = build_impl(tree, { {center.x, bbox.min.y, center.z}, {bbox.max.x, center.y, bbox.max.z} }, split_y_front, split_x_front_upper);
-  tree.nodes[result].children[0][1][1] = build_impl(tree, { {center.x, bbox.min.y, bbox.max.z}, {bbox.max.x, center.y, center.z} }, split_x_front_upper, split_z);
-  tree.nodes[result].children[1][0][0] = build_impl(tree, { {bbox.min.x, center.y, bbox.min.z}, {center.x, bbox.max.y, center.z} }, split_z, split_x_back_lower);
-  tree.nodes[result].children[1][0][1] = build_impl(tree, { {center.x, center.y, bbox.min.z}, {bbox.max.x, bbox.max.y, center.z} }, split_x_back_lower, split_y_back);
-  tree.nodes[result].children[1][1][0] = build_impl(tree, { {center.x, center.y, center.z}, {bbox.max.x, bbox.max.y, bbox.max.z} }, split_y_back, split_x_back_upper);
-  tree.nodes[result].children[1][1][1] = build_impl(tree, { {bbox.min.x, center.y, center.z}, {center.x, bbox.max.y, bbox.max.z} }, split_x_back_upper, end);
+  /*
+     +--------+
+    /       / |
+   +---+---+  |
+   | 3 | 4 |  |
+   +---+---+ /
+   | 1 | 2 |/
+   +---+---+
 
+   */
+
+  // front slice of the cube
+  // first quadrant
+  tree.nodes[result].children[0] = build_impl(tree, { {bbox.min.x, bbox.min.y, bbox.min.z}, {center.x, center.y, center.z} }, begin, split_x_front_lower);
+  // second quadrant
+  tree.nodes[result].children[1] = build_impl(tree, { {center.x, bbox.min.y, bbox.min.z}, {bbox.max.x, center.y, center.z} }, split_x_front_lower, split_y_front);
+  // third quadrant
+  tree.nodes[result].children[2] = build_impl(tree, { {bbox.min.x, center.y, bbox.min.z}, {center.x, bbox.max.y, center.z} }, split_y_front, split_x_front_upper);
+  // fourth quadrant
+  tree.nodes[result].children[3] = build_impl(tree, { {center.x, center.y, bbox.min.z}, {bbox.max.x, bbox.max.y, center.z} }, split_x_front_upper, split_z);
+
+  // back slice of the cube
+  tree.nodes[result].children[4] = build_impl(tree, { {bbox.min.x, bbox.min.y, center.z}, {center.x, center.y, bbox.max.z} }, split_z, split_x_back_lower);
+  tree.nodes[result].children[5] = build_impl(tree, { {center.x, bbox.min.y, center.z}, {bbox.max.x, bbox.max.y, bbox.max.z} }, split_x_back_lower, split_y_back);
+  tree.nodes[result].children[6] = build_impl(tree, { {bbox.min.x, center.y, center.z}, {center.x, bbox.max.y, bbox.max.z} }, split_y_back, split_x_back_upper);
+  tree.nodes[result].children[7] = build_impl(tree, { {center.x, center.y, center.z}, {bbox.max.x, bbox.max.y, bbox.max.z} },split_x_back_upper, end);
+
+  for (auto child_id : tree.nodes[result].children) {
+    if (child_id != null)
+      tree.nodes[result].mass += tree.nodes[child_id].mass;
+  }
   return result;
 }
 
-quadtree build(std::vector<point> points) {
+quadtree build(std::vector<point> points, std::vector<float> masses) {
   quadtree result;
   result.points = std::move(points);
+  result.masses = std::move(masses);
   result.root = build_impl(result, bbox(result.points.begin(), result.points.end()), result.points.begin(), result.points.end());
-  result.node_points_begin.push_back(result.points.size());
   return result;
 }
 

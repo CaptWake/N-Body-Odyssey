@@ -11,17 +11,13 @@ void printNodes(const node& currentNode, const node_id& currentId)
   std::cout << "Node ID: " << currentId << std::endl;
 
   // Iterate over children and recursively print them
-  for (int i = 0; i < 2; ++i) {
-    for (int j = 0; j < 2; ++j) {
-      for (int k = 0; k < 2; ++k) {
-        node_id childId = currentNode.children[i][j][k];
+  for (int i = 0; i < 8; ++i) {
+        node_id childId = currentNode.children[i];
         if (childId != null) {
           // Print the child node
-          std::cout << "Child[" << i << "][" << j << "][" << k << "]: " << childId << std::endl;
+          std::cout << "Child[" << i << "]: " << childId << std::endl;
         }
-      }
     }
-  }
 }
 
 int main(int argc, char** argv) {
@@ -69,7 +65,7 @@ int main(int argc, char** argv) {
   //simulation.start(10, 0.01, "/home/ste/Documents/test2.csv");
   //TIMERSTOP(SEQUENTIAL_AVX)
 
-  auto tree = build({{1,1, 2}, {2,5, 7}, {7, 6, 4}});
+  auto tree = build({{1, 1, 2}, {2,5, 7}, {7, 6, 4}}, {3,2,1});
   printNodes(tree.nodes[0], 0);
 
   return 0;
