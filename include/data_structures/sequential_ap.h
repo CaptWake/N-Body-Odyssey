@@ -1,7 +1,3 @@
-//
-// Created by maste on 3/21/2024.
-//
-
 #ifndef SEQUENTIALAP_H_
 #define SEQUENTIALAP_H_
 
