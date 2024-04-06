@@ -37,7 +37,6 @@ add_executable(SCPD_Project
         include/utilities/octree.h
         include/utilities/time_utils.h
         include/simulation.h
-        include/utilities/data_format.h
         include/data_structures/sequential_ap.h
         src/data_structures/sequential_ap.cc
         include/data_structures/sequential_ap_avx.h
@@ -57,6 +56,7 @@ add_executable(
         include/data_structures/nbody.h
         include/data_structures/sequential_ap.h
         src/data_structures/sequential_ap.cc
+        include/nlohmann/json.hpp
 )
 
 
