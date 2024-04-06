@@ -34,15 +34,18 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 add_executable(SCPD_Project
         include/data_structures/nbody.h
         include/utilities/vec3.h
-        src/main.cc
-        tests/test_utils.h
+        include/utilities/octree.h
+        include/utilities/time_utils.h
         include/simulation.h
         include/utilities/data_format.h
         include/data_structures/sequential_ap.h
         src/data_structures/sequential_ap.cc
         include/data_structures/sequential_ap_avx.h
         src/data_structures/sequential_ap_avx.cc
-        include/utilities/time_utils.h
+        include/data_structures/sequential_bh.h
+        src/data_structures/sequential_bh.cpp
+        src/main.cc
+        src/utilities/octree.cpp
 )
 
 target_link_libraries(SCPD_Project argparse)
