@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <memory>
 #include <cstdint>
+#include <vector>
 #include "vec3.h"
 
 using node_id = std::uint64_t;
