@@ -28,15 +28,15 @@ class SequentialAP : public NBody {
       this->G = grav_const;
 
       for (uint64_t i = 0; i < n_bodies*3; i+=3) {
-        this->masses[i/3]     = (float)engine();
+        this->masses[i/3]     = density(engine);
 
-        this->positions[i]    = (float)engine();
-        this->positions[i+1]  = (float)engine();
-        this->positions[i+2]  = (float)engine();
+        this->positions[i]    = density(engine);
+        this->positions[i+1]  = density(engine);
+        this->positions[i+2]  = density(engine);
 
-        this->velocities[i]   = (float)engine();
-        this->velocities[i+1] = (float)engine();
-        this->velocities[i+2] = (float)engine();
+        this->velocities[i]   = density(engine);
+        this->velocities[i+1] = density(engine);
+        this->velocities[i+2] = density(engine);
       }
     }
 

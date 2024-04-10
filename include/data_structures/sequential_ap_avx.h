@@ -46,13 +46,13 @@ class SequentialAPAVX: NBody {
     this->G = grav_const;
 
     for (uint64_t i = 0; i < n_bodies; ++i) {
-      this->m[i]  = (float)engine();
-      this->px[i] = (float)engine();
-      this->py[i] = (float)engine();
-      this->pz[i] = (float)engine();
-      this->vx[i] = (float)engine();
-      this->vy[i] = (float)engine();
-      this->vz[i] = (float)engine();
+      this->m[i]  = density(engine);
+      this->px[i] = density(engine);
+      this->py[i] = density(engine);
+      this->pz[i] = density(engine);
+      this->vx[i] = density(engine);
+      this->vy[i] = density(engine);
+      this->vz[i] = density(engine);
     }
 
   }

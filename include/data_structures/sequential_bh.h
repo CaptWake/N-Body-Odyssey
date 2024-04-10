@@ -28,9 +28,9 @@ class SequentialBH : NBody {
     this->v.reserve(n_bodies);
 
     for (uint64_t i = 0; i < n_bodies; i++) {
-      this->m.push_back((float) engine());
-      this->p.emplace_back((float) engine(), (float) engine(), (float) engine());
-      this->v.emplace_back((float) engine(), (float) engine(), (float) engine());
+      this->m.push_back(density(engine));
+      this->p.emplace_back(density(engine), density(engine), density(engine));
+      this->v.emplace_back(density(engine), density(engine), density(engine));
     }
   }
 
