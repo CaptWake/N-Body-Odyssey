@@ -1,7 +1,3 @@
-//
-// Created by ste on 09/04/24.
-//
-
 #ifndef OMP_AP_H_
 #define OMP_AP_H_
 
@@ -11,54 +7,67 @@
 #include <random>
 
 #include "nbody.h"
+#include "fileIO.h"
 
 
 class OmpAP : NBody {
  public:
   OmpAP() = default;
 
+  OmpAP(const std::string& fname, const int num_threads, const std::string& schedule_type, const int chunk_size) {
+    std::vector<float> m, v, p;
+    this->num_threads = num_threads;
+    this->schedule_type = schedule_type;
+    this->chunk_size = chunk_size;
+
+    this->n_bodies = ReadCSVConfiguration(fname, m, p, v, this->G);
+
+    this->masses = std::move(m);
+    this->positions = std::move(p);
+    this->velocities = std::move(v);
+  }
+
   // generate random samples
-  OmpAP(uint64_t n_bodies, const float grav_const, const int num_threads, const std::string& schedule_type="dynamic", const int chunk_size=1) {
+  OmpAP(uint64_t n_bodies, const float grav_const, const int num_threads, const std::string& schedule_type, const int chunk_size) {
     static std::random_device rd; // random device engine, usually based on /dev/random on UNIX-like systems
     // initialize Mersennes' twister using rd to generate the seed
     static std::mt19937 engine{0};//rd()};
     std::uniform_real_distribution<float> density(-1, 1);
+    const uint64_t n_coords = n_bodies*3;
 
-    this->n_bodies   = n_bodies;
-    this->masses     = new float[n_bodies];
-    this->positions  = new float[n_bodies*3];
-    this->velocities = new float[n_bodies*3];
+    this->n_bodies = n_bodies;
     this->G = grav_const;
-    this->num_threads=num_threads;
-    this->chunk_size=chunk_size;
-    this->schedule_type=schedule_type;
+    this->masses.reserve(n_bodies);
+    this->positions.reserve(n_coords);
+    this->velocities.reserve(n_coords);
 
-    for (uint64_t i = 0; i < n_bodies*3; i+=3) {
-      this->masses[i/3]     = density(engine);
+    this->num_threads = num_threads;
+    this->schedule_type = schedule_type;
+    this->chunk_size = chunk_size;
 
-      this->positions[i]    = density(engine);
-      this->positions[i+1]  = density(engine);
-      this->positions[i+2]  = density(engine);
+    for (uint64_t i = 0; i < n_coords; i+=3) {
+      this->masses.push_back(density(engine));
 
-      this->velocities[i]   = density(engine);
-      this->velocities[i+1] = density(engine);
-      this->velocities[i+2] = density(engine);
+      this->positions.push_back(density(engine));
+      this->positions.push_back(density(engine));
+      this->positions.push_back(density(engine));
+
+      this->velocities.push_back(density(engine));
+      this->velocities.push_back(density(engine));
+      this->velocities.push_back(density(engine));
     }
   }
 
   //Move Constructor
   OmpAP& operator=(OmpAP&& old) noexcept {
     n_bodies=old.n_bodies;
-    masses=old.masses;
-    velocities=old.velocities;
-    positions=old.positions;
+    masses=std::move(old.masses);
+    velocities=std::move(old.velocities);
+    positions=std::move(old.positions);
     G=old.G;
     num_threads=old.num_threads;
     schedule_type=old.schedule_type;
     chunk_size=old.chunk_size;
-    old.masses = nullptr;
-    old.positions = nullptr;
-    old.velocities = nullptr;
     return *this;
   }
 
@@ -70,15 +79,9 @@ class OmpAP : NBody {
 
   friend std::ostream& operator<<(std::ostream& os, const OmpAP& nbody);
 
-  ~OmpAP() {
-    free(masses);
-    free(positions);
-    free(velocities);
-  }
-
-  float *masses{};
-  float *positions{};
-  float *velocities{};
+  std::vector<float> masses{};
+  std::vector<float> positions{};
+  std::vector<float> velocities{};
   uint64_t n_bodies{};
   std::string schedule_type;
   int chunk_size{}, num_threads{};

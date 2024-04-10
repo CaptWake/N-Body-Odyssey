@@ -1,7 +1,8 @@
-#include "simulation.h"
-#include "time_utils.h"
 #include <argparse/argparse.hpp>
 #include <fstream>
+
+#include "simulation.h"
+#include "time_utils.h"
 
 
 int main(int argc, char** argv) {
@@ -26,9 +27,15 @@ int main(int argc, char** argv) {
     for (auto &experiment : program_args["experiments"]) {
       auto simulation = Simulation(experiment);
       std::cout << "Starting experiment " << experiment["name"] << std::endl;
-      TIMERSTART(sim)
-      simulation.start(experiment["tot_time"], experiment["time_step"]);
-      TIMERSTOP(sim)
+      if (experiment.contains("opath")) {
+        TIMERSTART(sim)
+        simulation.start(experiment["tot_time"], experiment["time_step"], experiment["opath"]);
+        TIMERSTOP(sim)
+      } else {
+        TIMERSTART(sim)
+        simulation.start(experiment["tot_time"], experiment["time_step"]);
+        TIMERSTOP(sim)
+      }
     }
   }
 

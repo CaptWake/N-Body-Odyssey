@@ -1,16 +1,32 @@
 #ifndef SEQUENTIAL_BH_H_
 #define SEQUENTIAL_BH_H_
 
-#include "nbody.h"
-#include "vec3.h"
 #include <vector>
 #include <random>
 
+#include "nbody.h"
+#include "vec3.h"
+#include "fileIO.h"
+
+
 class SequentialBH : NBody {
  public:
-  SequentialBH() { this->G = 1; this->theta = 0.9f; }
-  SequentialBH(const std::string &filename) {
-    LoadFromCSVConfiguration(filename);
+  SequentialBH() = default;
+
+  SequentialBH(const std::string &fname, const float theta) {
+    std::vector<float> _m, _v, _p;
+    ReadCSVConfiguration(fname, _m, _p, _v, this->G);
+
+    this->m = std::move(_m);
+    this->p.reserve(_p.size());
+    this->v.reserve(_v.size());
+
+    // convert to vec3
+    for (uint64_t i = 0; i < _p.size(); i+=3) {
+      this->p.emplace_back(_p[i], _p[i + 1], _p[i + 2]);
+      this->v.emplace_back(_v[i], _v[i + 1], _v[i + 2]);
+    }
+    this->theta = theta;
   }
 
   // generate random samples
@@ -35,12 +51,11 @@ class SequentialBH : NBody {
   }
 
   void Update(float dt) override;
-  void LoadFromCSVConfiguration(const std::string &filename);
   void LogsToCSV(const std::string &filename);
 
   std::vector<vec3> p, v;
   std::vector<float> m;
-  float G, theta;
+  float G{}, theta{};
 };
 
 #endif

@@ -33,6 +33,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -fopenmp")
 
 add_executable(SCPD_Project
         include/data_structures/nbody.h
+        include/utilities/fileIO.h
         include/utilities/vec3.h
         include/utilities/octree.h
         include/utilities/time_utils.h
@@ -49,6 +50,7 @@ add_executable(SCPD_Project
         src/data_structures/omp_ap.cpp
         include/data_structures/omp_bh.h
         src/data_structures/omp_bh.cpp
+        src/utilities/fileIO.cpp
 )
 
 target_link_libraries(SCPD_Project argparse)
