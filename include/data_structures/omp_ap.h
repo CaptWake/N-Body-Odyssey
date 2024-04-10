@@ -18,7 +18,7 @@ class OmpAP : NBody {
   OmpAP() = default;
 
   // generate random samples
-  OmpAP(uint64_t n_bodies, float grav_const, const int num_threads, const std::string& schedule_type="dynamic", const int chunk_size=1) {
+  OmpAP(uint64_t n_bodies, const float grav_const, const int num_threads, const std::string& schedule_type="dynamic", const int chunk_size=1) {
     static std::random_device rd; // random device engine, usually based on /dev/random on UNIX-like systems
     // initialize Mersennes' twister using rd to generate the seed
     static std::mt19937 engine{0};//rd()};
