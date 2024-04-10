@@ -31,9 +31,6 @@ class Simulation {
         else
           this->sim_ap_avx_seq = SequentialAPAVX(sim_args["n_bodies"], sim_args["grav_const"]);
      } else if (sim_args["mode"] == "OMP") {
-        if (sim_args.contains("ipath"))
-          this->sim_ap_omp = OmpAP(sim_args["ipath"]);
-        else
           this->sim_ap_omp = OmpAP(sim_args["n_bodies"], sim_args["grav_const"], sim_args["num_threads"], sim_args["schedule_type"], sim_args["chunk_size"]);
       }
    // Barnes Hut
@@ -44,9 +41,6 @@ class Simulation {
        else
          this->sim_bh_seq = SequentialBH(sim_args["n_bodies"], sim_args["grav_const"], sim_args["theta"]);
      } else if (sim_args["mode"] == "OMP") {
-       if (sim_args.contains("ipath"))
-         this->sim_bh_omp = OmpBH(sim_args["ipath"]);
-       else
          this->sim_bh_omp = OmpBH(sim_args["n_bodies"], sim_args["grav_const"], sim_args["chunk_size"], sim_args["num_threads"], sim_args["schedule_type"], sim_args["chunk_size"]);
      }
    }
