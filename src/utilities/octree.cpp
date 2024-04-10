@@ -9,16 +9,22 @@ vec3 octree::force_at(const vec3 &p, node_id id, float theta) {
   if(id != 0) {
     auto const &n = this->nodes[id];
 
-    if (n.center == p)
-      return vec3{0.f, 0.f, 0.f};
-
     vec3 d = n.center - p;
 
     auto l = d.x() * d.x() + d.y() * d.y() + d.z() * d.z() + 1e-9f;
     auto d_inv = 1.0f / sqrtf(l);
     auto d_inv3 = d_inv * d_inv * d_inv;
 
-    if (d.length() > n.size * theta)
+    // TODO: discuss the following fact: we have to set a bool indicating if we are a leaf or not?
+    // compute the force if we are a leaf or the theta is respected
+    if (n.children[0] == null &&
+        n.children[1] == null &&
+        n.children[2] == null &&
+        n.children[3] == null &&
+        n.children[4] == null &&
+        n.children[5] == null &&
+        n.children[6] == null &&
+        n.children[7] == null || d.length() < n.size * theta)
       return n.mass * d * d_inv3;
 
   }

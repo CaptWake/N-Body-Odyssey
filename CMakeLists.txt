@@ -29,7 +29,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(argparse)
 
 # Enable AVX on AMD
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -fopenmp")
 
 add_executable(SCPD_Project
         include/data_structures/nbody.h
@@ -45,6 +45,10 @@ add_executable(SCPD_Project
         src/data_structures/sequential_bh.cpp
         src/main.cc
         src/utilities/octree.cpp
+        include/data_structures/omp_ap.h
+        src/data_structures/omp_ap.cpp
+        include/data_structures/omp_bh.h
+        src/data_structures/omp_bh.cpp
 )
 
 target_link_libraries(SCPD_Project argparse)
