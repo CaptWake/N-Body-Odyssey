@@ -1,13 +1,12 @@
 #ifndef SEQUENTIAL_BH_H_
 #define SEQUENTIAL_BH_H_
 
-#include <vector>
 #include <random>
+#include <vector>
 
+#include "fileIO.h"
 #include "nbody.h"
 #include "vec3.h"
-#include "fileIO.h"
-
 
 class SequentialBH : NBody {
  public:
@@ -22,7 +21,7 @@ class SequentialBH : NBody {
     this->v.reserve(_v.size());
 
     // convert to vec3
-    for (uint64_t i = 0; i < _p.size(); i+=3) {
+    for (uint64_t i = 0; i < _p.size(); i += 3) {
       this->p.emplace_back(_p[i], _p[i + 1], _p[i + 2]);
       this->v.emplace_back(_v[i], _v[i + 1], _v[i + 2]);
     }
@@ -31,9 +30,10 @@ class SequentialBH : NBody {
 
   // generate random samples
   SequentialBH(const uint64_t n_bodies, const float grav_const, float theta) {
-    static std::random_device rd; // random device engine, usually based on /dev/random on UNIX-like systems
+    static std::random_device rd;  // random device engine, usually based on
+                                   // /dev/random on UNIX-like systems
     // initialize Mersennes' twister using rd to generate the seed
-    static std::mt19937 engine{0};//rd()};
+    static std::mt19937 engine{0};  // rd()};
     std::uniform_real_distribution<float> density(-1, 1);
 
     this->G = grav_const;

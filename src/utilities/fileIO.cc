@@ -1,10 +1,12 @@
 #include "fileIO.h"
 
 #include <fstream>
-#include <sstream>
 #include <iostream>
+#include <sstream>
 
-uint64_t ReadCSVConfigurationAOS(const std::string &filename, std::vector<float>& m, std::vector<float>& p, std::vector<float>& v, float& G) {
+uint64_t ReadCSVConfigurationAOS(const std::string& filename,
+                                 std::vector<float>& m, std::vector<float>& p,
+                                 std::vector<float>& v, float& G) {
   std::ifstream file(filename);
   if (!file.is_open()) {
     std::cerr << "Unable to open file: " << filename << std::endl;
@@ -63,15 +65,11 @@ uint64_t ReadCSVConfigurationAOS(const std::string &filename, std::vector<float>
   return i;
 }
 
-uint64_t ReadCSVConfigurationSOA(const std::string &filename,
-                                 std::vector<float>& m,
-                                 std::vector<float>& px,
-                                 std::vector<float>& py,
-                                 std::vector<float>& pz,
-                                 std::vector<float>& vx,
-                                 std::vector<float>& vy,
-                                 std::vector<float>& vz,
-                                 float& G) {
+uint64_t ReadCSVConfigurationSOA(const std::string& filename,
+                                 std::vector<float>& m, std::vector<float>& px,
+                                 std::vector<float>& py, std::vector<float>& pz,
+                                 std::vector<float>& vx, std::vector<float>& vy,
+                                 std::vector<float>& vz, float& G) {
   std::ifstream file(filename);
   if (file.is_open()) {
     std::string line;
@@ -125,5 +123,6 @@ uint64_t ReadCSVConfigurationSOA(const std::string &filename,
     return i;
   } else {
     std::cerr << "Unable to open file: " << filename << std::endl;
+    exit(1);
   }
 }

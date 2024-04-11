@@ -43,14 +43,14 @@ add_executable(SCPD_Project
         include/data_structures/sequential_ap_avx.h
         src/data_structures/sequential_ap_avx.cc
         include/data_structures/sequential_bh.h
-        src/data_structures/sequential_bh.cpp
+        src/data_structures/sequential_bh.cc
         src/main.cc
-        src/utilities/octree.cpp
+        src/utilities/octree.cc
         include/data_structures/omp_ap.h
-        src/data_structures/omp_ap.cpp
+        src/data_structures/omp_ap.cc
         include/data_structures/omp_bh.h
-        src/data_structures/omp_bh.cpp
-        src/utilities/fileIO.cpp
+        src/data_structures/omp_bh.cc
+        src/utilities/fileIO.cc
 )
 
 target_link_libraries(SCPD_Project argparse)

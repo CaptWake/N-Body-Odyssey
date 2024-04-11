@@ -1,19 +1,20 @@
 #ifndef OMP_BH_H_
 #define OMP_BH_H_
 
+#include <random>
 #include <utility>
 #include <vector>
-#include <random>
 
+#include "fileIO.h"
 #include "nbody.h"
 #include "vec3.h"
-#include "fileIO.h"
 
 class OmpBH : NBody {
  public:
   OmpBH() = default;
 
-  OmpBH(const std::string &fname, const float theta, const int num_threads, const std::string& schedule_type, const int chunk_size) {
+  OmpBH(const std::string& fname, const float theta, const int num_threads,
+        const std::string& schedule_type, const int chunk_size) {
     std::vector<float> _m, _v, _p;
     ReadCSVConfigurationAOS(fname, _m, _p, _v, this->G);
 
@@ -26,7 +27,7 @@ class OmpBH : NBody {
     this->v.reserve(_v.size());
 
     // convert to vec3
-    for (uint64_t i = 0; i < _p.size(); i+=3) {
+    for (uint64_t i = 0; i < _p.size(); i += 3) {
       this->p.emplace_back(_p[i], _p[i + 1], _p[i + 2]);
       this->v.emplace_back(_v[i], _v[i + 1], _v[i + 2]);
     }
@@ -34,10 +35,13 @@ class OmpBH : NBody {
   }
 
   // generate random samples
-  OmpBH(const uint64_t n_bodies, const float grav_const, const float theta, const int num_threads, const std::string& schedule_type, const int chunk_size) {
-    static std::random_device rd; // random device engine, usually based on /dev/random on UNIX-like systems
+  OmpBH(const uint64_t n_bodies, const float grav_const, const float theta,
+        const int num_threads, const std::string& schedule_type,
+        const int chunk_size) {
+    static std::random_device rd;  // random device engine, usually based on
+                                   // /dev/random on UNIX-like systems
     // initialize Mersennes' twister using rd to generate the seed
-    static std::mt19937 engine{0};//rd()};
+    static std::mt19937 engine{0};  // rd()};
     std::uniform_real_distribution<float> density(-1, 1);
 
     this->G = grav_const;
@@ -58,7 +62,7 @@ class OmpBH : NBody {
   }
 
   void Update(float dt) override;
-  void LogsToCSV(const std::string &filename);
+  void LogsToCSV(const std::string& filename);
 
   std::vector<vec3> p, v;
   std::vector<float> m;

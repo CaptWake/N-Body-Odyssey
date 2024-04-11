@@ -1,11 +1,12 @@
 #ifndef OCTREE_H_
 #define OCTREE_H_
 
-#include <limits>
 #include <algorithm>
-#include <memory>
 #include <cstdint>
+#include <limits>
+#include <memory>
 #include <vector>
+
 #include "vec3.h"
 
 using node_id = std::uint64_t;
@@ -18,7 +19,7 @@ struct box {
 
   // extending a bounding box with a point
   //
-  box & operator |= (vec3 const & p) {
+  box& operator|=(vec3 const& p) {
     min[0] = std::min(min.x(), p.x());
     min[1] = std::min(min.y(), p.y());
     min[2] = std::min(min.z(), p.z());
@@ -30,11 +31,10 @@ struct box {
 };
 
 // template function that computes the bounding box of a sequence of points
-template <typename  Iterator>
+template <typename Iterator>
 box bbox(Iterator begin, Iterator end) {
   box result;
-  for (auto it = begin; it != end; ++it)
-    result |= *it;
+  for (auto it = begin; it != end; ++it) result |= *it;
   return result;
 }
 
@@ -42,12 +42,13 @@ struct node {
   float mass{0.f};
   float size{0.f};
   vec3 center{0.f, 0.f, 0.f};
-  node_id children[8]{null, null, null, null,
-      null, null, null, null};
+  node_id children[8]{null, null, null, null, null, null, null, null};
 };
 
 inline vec3 middle(vec3 const& p1, vec3 const& p2) {
-  return { (p1.x() + p2.x()) / 2.f, (p1.y() + p2.y()) / 2.f, (p1.z() + p2.z()) / 2.f };
+  return {(p1.x() + p2.x()) / 2.f,
+          (p1.y() + p2.y()) / 2.f,
+          (p1.z() + p2.z()) / 2.f};
 }
 
 class octree {
@@ -61,7 +62,7 @@ class octree {
   std::vector<node> nodes;
   std::vector<float> masses;
   std::vector<vec3> points;
-  template <typename  Iterator>
+  template <typename Iterator>
   // [begin, end) is the sequence of points to build the quadtree on.
   node_id build_impl(box const& bbox, Iterator begin, Iterator end);
 };

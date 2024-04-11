@@ -1,14 +1,14 @@
+#include "sequential_bh.h"
+
 #include <fstream>
 #include <sstream>
 
-#include "sequential_bh.h"
 #include "octree.h"
 
-
 void SequentialBH::Update(float dt) {
-  std::vector<vec3> f{this->p.size(), {0,0,0}};
+  std::vector<vec3> f{this->p.size(), {0, 0, 0}};
   octree tree(this->p, this->m);
-  for (auto i = 0; i < this->p.size(); ++i){
+  for (auto i = 0; i < this->p.size(); ++i) {
     f[i] = tree.force_at(this->p[i], 0, theta);
     this->v[i] += f[i] * dt;
   }
@@ -24,8 +24,7 @@ void SequentialBH::LogsToCSV(const std::string &filename) {
     auto n_bodies = this->p.size();
     for (uint64_t i = 0; i < n_bodies; ++i) {
       file << this->p[i].x() << "," << this->p[i].y() << "," << this->p[i].z();
-      if (i < n_bodies - 1)
-        file << ",";
+      if (i < n_bodies - 1) file << ",";
     }
     file << std::endl;
     file.close();
@@ -33,4 +32,3 @@ void SequentialBH::LogsToCSV(const std::string &filename) {
     std::cerr << "Unable to open file: " << filename << std::endl;
   }
 }
-

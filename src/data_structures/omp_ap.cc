@@ -1,10 +1,12 @@
 #include "omp_ap.h"
-#include "sequential_ap.h"
+
+#include <omp.h>
+
 #include <cmath>
 #include <fstream>
 #include <sstream>
-#include <omp.h>
 
+#include "sequential_ap.h"
 
 void OmpAP::Update(const float dt) {
   if (this->schedule_type == "static") {
@@ -14,14 +16,14 @@ void OmpAP::Update(const float dt) {
   }
   omp_set_num_threads(this->num_threads);
 
-  #pragma omp parallel for schedule(runtime)
-  for (uint64_t i=0; i < this->n_bodies * 3; i+=3) {
+#pragma omp parallel for schedule(runtime)
+  for (uint64_t i = 0; i < this->n_bodies * 3; i += 3) {
     float fx = 0.0f;
     float fy = 0.0f;
     float fz = 0.0f;
 
-    //#pragma omp parallel for reduction (+: fx, fy, fz)
-    for (uint64_t j=0; j < this->n_bodies * 3; j+=3) {
+    // #pragma omp parallel for reduction (+: fx, fy, fz)
+    for (uint64_t j = 0; j < this->n_bodies * 3; j += 3) {
       auto m2_id = j / 3;
       // compute distance pair
 
@@ -39,17 +41,15 @@ void OmpAP::Update(const float dt) {
       fz += d_inv3 * this->masses[m2_id] * dz;
     }
 
-    this->velocities[i]   += fx * dt;
-    this->velocities[i+1] += fy * dt;
-    this->velocities[i+2] += fz * dt;
-
+    this->velocities[i] += fx * dt;
+    this->velocities[i + 1] += fy * dt;
+    this->velocities[i + 2] += fz * dt;
   }
 
-  for (uint64_t i=0; i < this->n_bodies * 3; i+=3) {
-
-    this->positions[i]   += this->velocities[i] * dt;
-    this->positions[i+1] += this->velocities[i+1] * dt;
-    this->positions[i+2] += this->velocities[i+2] * dt;
+  for (uint64_t i = 0; i < this->n_bodies * 3; i += 3) {
+    this->positions[i] += this->velocities[i] * dt;
+    this->positions[i + 1] += this->velocities[i + 1] * dt;
+    this->positions[i + 2] += this->velocities[i + 2] * dt;
   }
 }
 
@@ -59,8 +59,12 @@ std::ostream &operator<<(std::ostream &os, const OmpAP &nbody) {
   for (uint64_t i = 0; i < nbody.n_bodies; ++i) {
     std::cout << "Body " << i + 1 << ":\n";
     std::cout << "  Mass: " << nbody.masses[i] << std::endl;
-    std::cout << "  Position (x, y, z): " << nbody.positions[i * 3] << ", " << nbody.positions[i * 3 + 1] << ", " << nbody.positions[i * 3 + 2] << std::endl;
-    std::cout << "  Velocity (vx, vy, vz): " << nbody.velocities[i * 3] << ", " << nbody.velocities[i * 3 + 1] << ", " << nbody.velocities[i * 3 + 2] << std::endl;
+    std::cout << "  Position (x, y, z): " << nbody.positions[i * 3] << ", "
+              << nbody.positions[i * 3 + 1] << ", "
+              << nbody.positions[i * 3 + 2] << std::endl;
+    std::cout << "  Velocity (vx, vy, vz): " << nbody.velocities[i * 3] << ", "
+              << nbody.velocities[i * 3 + 1] << ", "
+              << nbody.velocities[i * 3 + 2] << std::endl;
   }
   return os;
 }
@@ -69,10 +73,10 @@ void OmpAP::LogsToCSV(const std::string &filename) const {
   std::ofstream file(filename, std::ios_base::app);
   if (file.is_open()) {
     uint64_t i;
-    for (i = 0; i < n_bodies*3; i+=3) {
-      file << this->positions[i] << "," << this->positions[i+1] << "," << this->positions[i+2];
-      if (i < this->n_bodies * 3 - 3)
-        file << ",";
+    for (i = 0; i < n_bodies * 3; i += 3) {
+      file << this->positions[i] << "," << this->positions[i + 1] << ","
+           << this->positions[i + 2];
+      if (i < this->n_bodies * 3 - 3) file << ",";
     }
     file << std::endl;
     file.close();

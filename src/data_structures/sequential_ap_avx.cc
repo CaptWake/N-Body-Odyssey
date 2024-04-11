@@ -1,10 +1,12 @@
 
 #include "sequential_ap_avx.h"
-#include <immintrin.h>// AVX intrinsics
+
+#include <immintrin.h>  // AVX intrinsics
+
+#include <cmath>
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <cmath>
 
 // helper function given by SO - computes the horizontal sum
 float hsum_avx(__m256 x) {
@@ -31,15 +33,16 @@ float hsum_avx(__m256 x) {
 
 void SequentialAPAVX::Update(float dt) {
   __m256 DT = _mm256_set_ps(dt, dt, dt, dt, dt, dt, dt, dt);
-  __m256 s = _mm256_set_ps(1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f);
+  __m256 s = _mm256_set_ps(
+      1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f);
 
   for (uint64_t i = 0; i < n_bodies; ++i) {
-
     __m256 Fx = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
     __m256 Fy = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
     __m256 Fz = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 
-    for (uint64_t j = 0; j < n_bodies; j+=8) { // exploit the SIMD computing blocks of 8 pairs each time
+    for (uint64_t j = 0; j < n_bodies;
+         j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
 
       const __m256 Xi = _mm256_broadcast_ss(px + i);
       const __m256 Yi = _mm256_broadcast_ss(py + i);
@@ -54,15 +57,16 @@ void SequentialAPAVX::Update(float dt) {
       const __m256 Z = _mm256_sub_ps(Zj, Zi);
 
       __m256 M = _mm256_loadu_ps(m + j);
-      const __m256 mask = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+      const __m256 mask =
+          _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
       M = _mm256_mul_ps(M, mask);
 
-      const __m256 D = _mm256_fmadd_ps(X, X,
-                                       _mm256_fmadd_ps(Y, Y,
-                                                       _mm256_fmadd_ps(Z, Z, s))) ;
+      const __m256 D = _mm256_fmadd_ps(
+          X, X, _mm256_fmadd_ps(Y, Y, _mm256_fmadd_ps(Z, Z, s)));
       const __m256 D_inv = _mm256_rsqrt_ps(D);
-      const __m256 D_inv3 = _mm256_mul_ps(D_inv,
-                                          _mm256_mul_ps(D_inv, D_inv)); //da scambiare con la riga precedente
+      const __m256 D_inv3 = _mm256_mul_ps(
+          D_inv,
+          _mm256_mul_ps(D_inv, D_inv));  // da scambiare con la riga precedente
 
       Fx = _mm256_fmadd_ps(D_inv3, _mm256_mul_ps(M, X), Fx);
       Fy = _mm256_fmadd_ps(D_inv3, _mm256_mul_ps(M, Y), Fy);
@@ -76,7 +80,7 @@ void SequentialAPAVX::Update(float dt) {
     vz[i] += hsum_avx(Vz);
   }
 
-  for (uint64_t i = 0; i < n_bodies; i+=8) {
+  for (uint64_t i = 0; i < n_bodies; i += 8) {
     const __m256 X = _mm256_loadu_ps(px + i);
     const __m256 Y = _mm256_loadu_ps(py + i);
     const __m256 Z = _mm256_loadu_ps(pz + i);
@@ -101,24 +105,24 @@ std::ostream &operator<<(std::ostream &os, const SequentialAPAVX &nbody) {
   for (uint64_t i = 0; i < nbody.n_bodies; ++i) {
     os << "Body " << i + 1 << ":\n";
     os << "  Mass: " << nbody.m[i] << std::endl;
-    os << "  Position (x, y, z): " << nbody.px[i] << ", " << nbody.py[i] << ", " << nbody.pz[i] << std::endl;
-    os << "  Velocity (vx, vy, vz): " << nbody.vx[i] << ", " << nbody.vy[i] << ", " << nbody.vz[i] << std::endl;
+    os << "  Position (x, y, z): " << nbody.px[i] << ", " << nbody.py[i] << ", "
+       << nbody.pz[i] << std::endl;
+    os << "  Velocity (vx, vy, vz): " << nbody.vx[i] << ", " << nbody.vy[i]
+       << ", " << nbody.vz[i] << std::endl;
   }
   return os;
 }
 
-
 void SequentialAPAVX::LogsToCSV(const std::string &filename) const {
-    std::ofstream file(filename, std::ios_base::app);
-    if (file.is_open()) {
-      for (uint64_t i = 0; i < n_bodies; ++i) {
-        file << px[i] << "," << py[i] << "," << pz[i];
-        if (i < n_bodies - 1)
-          file << ",";
-      }
-      file << std::endl;
-      file.close();
-    } else {
-      std::cerr << "Unable to open file: " << filename << std::endl;
+  std::ofstream file(filename, std::ios_base::app);
+  if (file.is_open()) {
+    for (uint64_t i = 0; i < n_bodies; ++i) {
+      file << px[i] << "," << py[i] << "," << pz[i];
+      if (i < n_bodies - 1) file << ",";
     }
+    file << std::endl;
+    file.close();
+  } else {
+    std::cerr << "Unable to open file: " << filename << std::endl;
+  }
 }

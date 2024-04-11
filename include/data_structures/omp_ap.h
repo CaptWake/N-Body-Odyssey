@@ -2,19 +2,19 @@
 #define OMP_AP_H_
 
 #include <cstdint>
-#include <vector>
-#include <string>
 #include <random>
+#include <string>
+#include <vector>
 
-#include "nbody.h"
 #include "fileIO.h"
-
+#include "nbody.h"
 
 class OmpAP : NBody {
  public:
   OmpAP() = default;
 
-  OmpAP(const std::string& fname, const int num_threads, const std::string& schedule_type, const int chunk_size) {
+  OmpAP(const std::string& fname, const int num_threads,
+        const std::string& schedule_type, const int chunk_size) {
     std::vector<float> m, v, p;
     this->num_threads = num_threads;
     this->schedule_type = schedule_type;
@@ -28,12 +28,14 @@ class OmpAP : NBody {
   }
 
   // generate random samples
-  OmpAP(uint64_t n_bodies, const float grav_const, const int num_threads, const std::string& schedule_type, const int chunk_size) {
-    static std::random_device rd; // random device engine, usually based on /dev/random on UNIX-like systems
+  OmpAP(uint64_t n_bodies, const float grav_const, const int num_threads,
+        const std::string& schedule_type, const int chunk_size) {
+    static std::random_device rd;  // random device engine, usually based on
+                                   // /dev/random on UNIX-like systems
     // initialize Mersennes' twister using rd to generate the seed
-    static std::mt19937 engine{0};//rd()};
+    static std::mt19937 engine{0};  // rd()};
     std::uniform_real_distribution<float> density(-1, 1);
-    const uint64_t n_coords = n_bodies*3;
+    const uint64_t n_coords = n_bodies * 3;
 
     this->n_bodies = n_bodies;
     this->G = grav_const;
@@ -45,7 +47,7 @@ class OmpAP : NBody {
     this->schedule_type = schedule_type;
     this->chunk_size = chunk_size;
 
-    for (uint64_t i = 0; i < n_coords; i+=3) {
+    for (uint64_t i = 0; i < n_coords; i += 3) {
       this->masses.push_back(density(engine));
 
       this->positions.push_back(density(engine));
@@ -58,16 +60,16 @@ class OmpAP : NBody {
     }
   }
 
-  //Move Constructor
+  // Move Constructor
   OmpAP& operator=(OmpAP&& old) noexcept {
-    n_bodies=old.n_bodies;
-    masses=std::move(old.masses);
-    velocities=std::move(old.velocities);
-    positions=std::move(old.positions);
-    G=old.G;
-    num_threads=old.num_threads;
-    schedule_type=old.schedule_type;
-    chunk_size=old.chunk_size;
+    n_bodies = old.n_bodies;
+    masses = std::move(old.masses);
+    velocities = std::move(old.velocities);
+    positions = std::move(old.positions);
+    G = old.G;
+    num_threads = old.num_threads;
+    schedule_type = old.schedule_type;
+    chunk_size = old.chunk_size;
     return *this;
   }
 
@@ -86,7 +88,6 @@ class OmpAP : NBody {
   std::string schedule_type;
   int chunk_size{}, num_threads{};
   float G{};
-
 };
 
 #endif
