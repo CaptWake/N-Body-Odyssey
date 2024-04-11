@@ -5,9 +5,7 @@
 #include "time_utils.h"
 
 int main(int argc, char** argv) {
-  argparse::ArgumentParser program("N-Body-Simulator");
-  program.add_argument("-c", "--config")
-      .help("specify the configuration file path");
+  argparse::ArgumentParser program("N-Body-Simulator"); program.add_argument("-c", "--config").help("specify the configuration file path");
 
   try {
     program.parse_args(argc, argv);
