@@ -1,0 +1,33 @@
+name: Format Code on Push to Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  format:
+    name: Format Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install clang-format
+        run: sudo apt-get install -y clang-format-17
+
+      - name: Run Formatter Script
+        run: bash format.sh
+
+      - name: Commit Changes
+        run: |
+          git config --global user.name 'CaptWake[bot]'
+          git config --global user.email 'stefanoderosa1999@gmail.com'
+          git add .
+          git diff-index --quiet HEAD || git commit -m "Auto-format code"
+
+      - name: Push Changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
