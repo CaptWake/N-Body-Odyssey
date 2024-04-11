@@ -1,18 +1,19 @@
 #!/bin/bash
 
-# Find all .cc files recursively
-cc_files=$(find . -name "*.[cc|h]" -not -path "./cmake-build-debug/*/*/*")
+# Find all .cc and .h files recursively
+files=$(find . -type f \( -name "*.cc" -o -name "*.h" \))
 
 # Check if clang-format is available
-if ! command -v clang-format-17 &> /dev/null; then
+if ! command -v clang-format &> /dev/null; then
   echo "clang-format not found. Please install it."
   exit 1
 fi
 
-# Format each .cc file using clang-format with Google style
-for file in $cc_files; do
-  clang-format-17 -i "$file"
-  echo "Formatted: $file"
+# Format each file using clang-format with in-place modification (-i)
+# and fallback style set to none (-fallback-style=none)
+for file in $files; do
+  echo "Formatting file $file"
+  clang-format -i -style=file "$file" || echo "Failed to format: $file"
 done
 
-echo "All .cc files formatted!"
+echo "Formatting completed."
