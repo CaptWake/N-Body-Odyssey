@@ -15,7 +15,11 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install clang-format
-        run: sudo apt-get install -y clang-format-17
+        run: |
+          deb http://apt.llvm.org/buster/ llvm-toolchain-buster-17 main
+          deb-src http://apt.llvm.org/buster/ llvm-toolchain-buster-17 main
+          sudo apt update -y
+          sudo apt install -y clang-format-17
 
       - name: Run Formatter Script
         run: bash format.sh
