@@ -5,6 +5,7 @@
 #include <iostream>
 #include <random>
 #include "nbody.h"
+#include "fileIO.h"
 
 class SequentialAPAVX: NBody {
  public:
@@ -21,7 +22,15 @@ class SequentialAPAVX: NBody {
   }
 
   explicit SequentialAPAVX(const std::string& fname) {
-    LoadFromCSVConfiguration(fname);
+    std::vector<float> _m, _px, _py, _pz, _vx, _vy, _vz;
+    this->n_bodies = ReadCSVConfigurationSOA(fname, _m, _px, _py, _pz, _vx, _vy, _vz, this->G);
+    vector_to_arr(_m, &this->m, true);
+    vector_to_arr(_px, &this->px, true);
+    vector_to_arr(_py, &this->py, true);
+    vector_to_arr(_pz, &this->pz, true);
+    vector_to_arr(_vx, &this->vx, true);
+    vector_to_arr(_vy, &this->vy, true);
+    vector_to_arr(_vz, &this->vz, true);
   }
 
   // generate random samples
@@ -77,8 +86,6 @@ class SequentialAPAVX: NBody {
     old.vz = nullptr;
     return *this;
   }
-
-  void LoadFromCSVConfiguration(const std::string& filename);
 
   // Function to export bodies information to CSV file
   void LogsToCSV(const std::string& filename) const;

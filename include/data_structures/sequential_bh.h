@@ -15,7 +15,7 @@ class SequentialBH : NBody {
 
   SequentialBH(const std::string &fname, const float theta) {
     std::vector<float> _m, _v, _p;
-    ReadCSVConfiguration(fname, _m, _p, _v, this->G);
+    ReadCSVConfigurationAOS(fname, _m, _p, _v, this->G);
 
     this->m = std::move(_m);
     this->p.reserve(_p.size());

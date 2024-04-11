@@ -15,8 +15,7 @@ class SequentialAP : public NBody {
 
     explicit SequentialAP(const std::string& fname) {
       std::vector<float> m, v, p;
-      this->n_bodies = ReadCSVConfiguration(fname, m, p, v, this->G);
-
+      this->n_bodies = ReadCSVConfigurationAOS(fname, m, p, v, this->G);
       this->masses = std::move(m);
       this->positions = std::move(p);
       this->velocities = std::move(v);
@@ -59,19 +58,19 @@ class SequentialAP : public NBody {
        return *this;
    }
 
-  // Function to export bodies information to CSV file
-  void LogsToCSV(const std::string& filename) const;
+   // Function to export bodies information to CSV file
+   void LogsToCSV(const std::string& filename) const;
 
    // Update//
    void Update(float dt) override;
 
    friend std::ostream& operator<<(std::ostream& os, const SequentialAP& nbody);
 
-  std::vector<float> masses{};
-  std::vector<float> positions{};
-  std::vector<float> velocities{};
-  uint64_t n_bodies{};
-  float G{};
+   std::vector<float> masses{};
+   std::vector<float> positions{};
+   std::vector<float> velocities{};
+   uint64_t n_bodies{};
+   float G{};
 };
 
 #endif

@@ -20,7 +20,7 @@ class OmpAP : NBody {
     this->schedule_type = schedule_type;
     this->chunk_size = chunk_size;
 
-    this->n_bodies = ReadCSVConfiguration(fname, m, p, v, this->G);
+    this->n_bodies = ReadCSVConfigurationAOS(fname, m, p, v, this->G);
 
     this->masses = std::move(m);
     this->positions = std::move(p);

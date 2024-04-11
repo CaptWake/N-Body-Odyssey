@@ -15,7 +15,7 @@ class OmpBH : NBody {
 
   OmpBH(const std::string &fname, const float theta, const int num_threads, const std::string& schedule_type, const int chunk_size) {
     std::vector<float> _m, _v, _p;
-    ReadCSVConfiguration(fname, _m, _p, _v, this->G);
+    ReadCSVConfigurationAOS(fname, _m, _p, _v, this->G);
 
     this->num_threads = num_threads;
     this->schedule_type = schedule_type;
