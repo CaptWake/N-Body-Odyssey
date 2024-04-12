@@ -41,7 +41,10 @@
 # *.ipr
 
 # CMake
-cmake-build-*/
+cmake-build*/
+
+#benchmarks bin
+benchmark/bin/
 
 # Mongo Explorer plugin
 .idea/**/mongoSettings.xml
