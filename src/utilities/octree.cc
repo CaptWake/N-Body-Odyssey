@@ -1,4 +1,5 @@
 #include "octree.h"
+#include <immintrin.h>  // AVX intrinsics
 
 octree::octree(std::vector<vec3> points, std::vector<float>& masses) {
   this->masses = masses;
@@ -142,4 +143,154 @@ inline node_id octree::build_impl(const box& bbox, Iterator begin,
   }
   this->nodes[result].center = sum / this->nodes[result].mass;
   return result;
+}
+
+void swap(float *p1, float *p2, uint64_t i, uint64_t j){
+  float aux = p1[i];
+  p1[i] = p2[j];
+  p2[j] = aux;
+}
+
+template<class UnaryPred>
+uint64_t partition(float *p1, float *p2, float *p3, uint64_t begin, uint64_t end, UnaryPred p){
+
+  while (begin != end && p(p1[begin])) {
+    begin++;
+  }
+
+  if (begin == end)
+    return end;
+
+  for (auto i = begin; i != end; ++i) {
+    if (p(p1[i])) {
+      std::swap(p1[i], p1[begin]);
+      std::swap(p2[i], p2[begin]);
+      std::swap(p3[i], p3[begin]);
+      begin++;
+    }
+  }
+  return begin;
+}
+
+inline node_id octreeSOA::build_impl(const boxSOA& bbox, uint64_t begin, uint64_t end) {
+  if (begin >= end) return null;
+
+  node_id result = this->nodes.size();
+  this->nodes.emplace_back();
+
+  // Compute bbox length on building time to avoid recompute multiple times
+  // when computing the force contributions
+  this->nodes[result].size = bbox.maxx - bbox.minx;
+
+  if (begin + 1 == end) {
+    this->nodes[result].mass = 1.0f;  // this->masses[id];
+    this->nodes[result].cx = this->px[begin];
+    this->nodes[result].cy = this->py[begin];
+    this->nodes[result].cz = this->pz[begin];
+    return result;
+  }
+
+  float cx = (bbox.maxx + bbox.minx) / 2.0f;
+  float cy = (bbox.maxy + bbox.miny) / 2.0f;
+  float cz = (bbox.maxz + bbox.minz) / 2.0f;
+
+  auto bottom = [cy](float y) {return y < cy;};
+  auto left = [cx](float x) { return x < cx;};
+  auto front = [cz](float z) { return z < cz;};
+
+
+  uint64_t  split_z = partition(pz.data(), px.data(), py.data(), begin, end, front);
+
+  // Split the points along Y
+  uint64_t split_y_front = partition(py.data(), px.data(), pz.data(), begin, split_z, bottom);
+  uint64_t split_y_back = partition(py.data(), px.data(), pz.data(), split_z, end, bottom);
+
+  // Split the points along X
+  uint64_t split_x_front_lower = partition(px.data(), py.data(), pz.data(), begin, split_y_front, left);
+  uint64_t split_x_front_upper = partition(px.data(), py.data(), pz.data(), split_y_front, split_z, left);
+  uint64_t split_x_back_lower = partition(px.data(), py.data(), pz.data(), split_z, split_y_back, left);
+  uint64_t split_x_back_upper = partition(px.data(), py.data(), pz.data(), split_y_back, end, left);
+
+  /*
+     +--------+
+    /       / |
+   +---+---+  |
+   | 3 | 4 |  |
+   +---+---+ /
+   | 1 | 2 |/
+   +---+---+
+
+   */
+  // front slice of the cube
+  // first quadrant
+  this->nodes[result].children[0] =
+      build_impl({bbox.minx, bbox.miny, bbox.minz,
+                  cx, cy, cz},
+                 begin,
+                 split_x_front_lower);
+  // second quadrant
+  this->nodes[result].children[1] =
+      build_impl({cx, bbox.miny, bbox.minz,
+                  bbox.maxx, cy, cz},
+                 split_x_front_lower,
+                 split_y_front);
+  // third quadrant
+  this->nodes[result].children[2] =
+      build_impl({bbox.minx, cy, bbox.minz,
+                  cx, bbox.maxy, cz},
+                 split_y_front,
+                 split_x_front_upper);
+  // fourth quadrant
+  this->nodes[result].children[3] =
+      build_impl({cx, cy, bbox.minz,
+                  bbox.maxx, bbox.maxy, cz},
+                 split_x_front_upper,
+                 split_z);
+
+  // back slice of the cube
+  this->nodes[result].children[4] =
+      build_impl({bbox.minx, bbox.miny, cz,
+                  cx, cy, bbox.maxz},
+                 split_z,
+                 split_x_back_lower);
+  this->nodes[result].children[5] =
+      build_impl({cx, bbox.miny, cz,
+                  bbox.maxx, bbox.maxy, bbox.maxz},
+                 split_x_back_lower,
+                 split_y_back);
+  this->nodes[result].children[6] =
+      build_impl({bbox.minx, cy, cz,
+                  cx, bbox.maxy, bbox.maxz},
+                 split_y_back,
+                 split_x_back_upper);
+  this->nodes[result].children[7] =
+      build_impl({cx, cy, cz,
+                  bbox.maxx, bbox.maxy, bbox.maxz},
+                 split_x_back_upper,
+                 end);
+
+
+  float sumx ,sumy, sumz;
+  sumx = sumy = sumz = 0.0f;
+  for (auto child_id : this->nodes[result].children) {
+    if (child_id != null) {
+      this->nodes[result].mass += this->nodes[child_id].mass;
+      sumx += this->nodes[child_id].cx * this->nodes[child_id].mass;
+      sumy += this->nodes[child_id].cy * this->nodes[child_id].mass;
+      sumz += this->nodes[child_id].cz * this->nodes[child_id].mass;
+    }
+  }
+  this->nodes[result].cx = sumx / this->nodes[result].mass;
+  this->nodes[result].cy = sumy / this->nodes[result].mass;
+  this->nodes[result].cz = sumz / this->nodes[result].mass;
+  return result;
+}
+octreeSOA::octreeSOA(std::vector<float> px, std::vector<float> py, std::vector<float> pz, std::vector<float> &masses) {
+  this->masses = masses;
+  this->px = px;
+  this->py = py;
+  this->pz = pz;
+  this->root = build_impl(
+      bbox(px.begin(), px.end(), py.begin(), pz.begin()), 0, px.size());
+
 }
