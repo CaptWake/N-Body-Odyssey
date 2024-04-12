@@ -1,15 +1,15 @@
 #include <argparse/argparse.hpp>
 #include <fstream>
 
+#include "octree.h"
 #include "simulation.h"
 #include "time_utils.h"
-#include "octree.h"
 
 int main(int argc, char** argv) {
-  std::vector<float> px {0.2f, 0.1f, 0.3f, 0.8f, 0.971f};
-  std::vector<float> py {0.71f, 0.26f, 0.14f, 0.55f, 0.34f};
-  std::vector<float> pz {0.28f, 0.444f, 0.645f, 0.222f, 0.04f};
-  std::vector<float> m {1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+  std::vector<float> px{0.2f, 0.1f, 0.3f, 0.8f, 0.971f};
+  std::vector<float> py{0.71f, 0.26f, 0.14f, 0.55f, 0.34f};
+  std::vector<float> pz{0.28f, 0.444f, 0.645f, 0.222f, 0.04f};
+  std::vector<float> m{1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
   auto p = octreeSOA(px, py, pz, m);
   return 1;
   argparse::ArgumentParser program("N-Body-Simulator");

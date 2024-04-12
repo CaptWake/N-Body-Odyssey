@@ -77,7 +77,7 @@ struct boxSOA {
 
   // extending a bounding box with a point
   //
-  void Update(float x , float y, float z) {
+  void Update(float x, float y, float z) {
     minx = std::min(minx, x);
     miny = std::min(miny, y);
     minz = std::min(minz, z);
@@ -90,7 +90,7 @@ struct boxSOA {
 template <typename Iterator>
 boxSOA bbox(Iterator beginx, Iterator endx, Iterator beginy, Iterator beginz) {
   boxSOA result;
-  for (auto itx = beginx; itx != endx; ++itx){
+  for (auto itx = beginx; itx != endx; ++itx) {
     result.Update(*itx, *beginy, *beginz);
     ++beginy;
     ++beginz;
@@ -107,11 +107,14 @@ struct nodeSOA {
   node_id children[8]{null, null, null, null, null, null, null, null};
 };
 
-class octreeSOA{
-  vec3 force_at(float const px, float const py, float const pz, node_id id, float theta);
+class octreeSOA {
+  vec3 force_at(float const px, float const py, float const pz, node_id id,
+                float theta);
 
  public:
-  octreeSOA(std::vector<float> px, std::vector<float> py, std::vector<float> pz,  std::vector<float>& masses);
+  octreeSOA(std::vector<float> px, std::vector<float> py, std::vector<float> pz,
+            std::vector<float>& masses);
+
  private:
   boxSOA _bbox;
   node_id root;
@@ -123,6 +126,5 @@ class octreeSOA{
   // [begin, end) is the sequence of points to build the quadtree on.
   node_id build_impl(boxSOA const& bbox, uint64_t begin, uint64_t end);
 };
-
 
 #endif
