@@ -1,6 +1,5 @@
 #include "octree.h"
-
-#include <immintrin.h>  // AVX intrinsics
+#include "avx.h"
 
 octree::octree(std::vector<vec3> points, std::vector<float>& masses) {
   this->masses = masses;
@@ -25,6 +24,7 @@ vec3 octree::force_at(const vec3& p, node_id id, float theta) {
             n.children[2] == null && n.children[3] == null &&
             n.children[4] == null && n.children[5] == null &&
             n.children[6] == null && n.children[7] == null ||
+        // TODO: avoid recomputing the vector norm, we have already the l variable
         d.length() < n.size * theta)
       return n.mass * d * d_inv3;
   }
@@ -172,6 +172,18 @@ uint64_t partition(float* p1, float* p2, float* p3, uint64_t begin,
   return begin;
 }
 
+// Function to apply a predicate operation on AVX register containing distances
+__m256 predicate_operation(__m256 distances, __m256 threshold) {
+  // Perform comparison operation
+  __m256 comparison = _mm256_cmp_ps(distances, threshold, _CMP_GE_OQ);
+
+  // Create a floating-point mask where true elements are 1.0 and false elements are 0.0
+  __m256 mask = _mm256_blendv_ps(_mm256_setzero_ps(), _mm256_set1_ps(1.0f), comparison);
+
+  return mask;
+}
+
+
 inline node_id octreeSOA::build_impl(const boxSOA& bbox, uint64_t begin,
                                      uint64_t end) {
   if (begin >= end) return null;
@@ -188,6 +200,7 @@ inline node_id octreeSOA::build_impl(const boxSOA& bbox, uint64_t begin,
     this->nodes[result].cx = this->px[begin];
     this->nodes[result].cy = this->py[begin];
     this->nodes[result].cz = this->pz[begin];
+    this->nodes[result].is_leaf = true;
     return result;
   }
 
@@ -266,19 +279,56 @@ inline node_id octreeSOA::build_impl(const boxSOA& bbox, uint64_t begin,
   this->nodes[result].children[7] = build_impl(
       {cx, cy, cz, bbox.maxx, bbox.maxy, bbox.maxz}, split_x_back_upper, end);
 
-  float sumx, sumy, sumz;
-  sumx = sumy = sumz = 0.0f;
-  for (auto child_id : this->nodes[result].children) {
-    if (child_id != null) {
-      this->nodes[result].mass += this->nodes[child_id].mass;
-      sumx += this->nodes[child_id].cx * this->nodes[child_id].mass;
-      sumy += this->nodes[child_id].cy * this->nodes[child_id].mass;
-      sumz += this->nodes[child_id].cz * this->nodes[child_id].mass;
-    }
-  }
-  this->nodes[result].cx = sumx / this->nodes[result].mass;
-  this->nodes[result].cy = sumy / this->nodes[result].mass;
-  this->nodes[result].cz = sumz / this->nodes[result].mass;
+  auto children = this->nodes[result].children;
+
+  auto tx = [&](auto cid) { return (cid != null) ? this->nodes[cid].cx : 0; };
+  auto ty = [&](auto cid) { return (cid != null) ? this->nodes[cid].cy : 0; };
+  auto tz = [&](auto cid) { return (cid != null) ? this->nodes[cid].cz : 0; };
+  auto tm = [&](auto cid) { return (cid != null) ? this->nodes[cid].mass : 0; };
+
+  auto m256_x = _mm256_set_ps(tx(children[0]),
+                 tx(children[1]),
+                 tx(children[2]),
+                 tx(children[3]),
+                 tx(children[4]),
+                 tx(children[5]),
+                 tx(children[6]),
+                 tx(children[7]));
+
+  auto m256_y =  _mm256_set_ps(ty(children[0]),
+                   ty(children[1]),
+                   ty(children[2]),
+                   ty(children[3]),
+                   ty(children[4]),
+                   ty(children[5]),
+                   ty(children[6]),
+                   ty(children[7]));
+
+  auto m256_z = _mm256_set_ps(tz(children[0]),
+                   tz(children[1]),
+                   tz(children[2]),
+                   tz(children[3]),
+                   tz(children[4]),
+                   tz(children[5]),
+                   tz(children[6]),
+                   tz(children[7]));
+
+
+  auto m256_m = _mm256_set_ps(tm(children[0]),
+                              tm(children[1]),
+                              tm(children[2]),
+                              tm(children[3]),
+                              tm(children[4]),
+                              tm(children[5]),
+                              tm(children[6]),
+                              tm(children[7]));
+
+
+  this->nodes[result].cx = hsum_avx(_mm256_mul_ps(m256_x, m256_m)) / this->nodes[result].mass;
+  this->nodes[result].cy = hsum_avx(_mm256_mul_ps(m256_y, m256_m)) / this->nodes[result].mass;
+  this->nodes[result].cz = hsum_avx(_mm256_mul_ps(m256_z, m256_m)) / this->nodes[result].mass;
+  this->nodes[result].mass = hsum_avx(m256_m);
+
   return result;
 }
 octreeSOA::octreeSOA(std::vector<float> px, std::vector<float> py,
@@ -290,3 +340,96 @@ octreeSOA::octreeSOA(std::vector<float> px, std::vector<float> py,
   this->root = build_impl(
       bbox(px.begin(), px.end(), py.begin(), pz.begin()), 0, px.size());
 }
+
+void octreeSOA::force_at(const float px,
+                         const float py,
+                         const float pz,
+                         const node_id* nodes,
+                         float theta,
+                         __m256& fx,
+                         __m256& fy,
+                         __m256& fz) {
+
+  auto tx = [&](auto cid) { return (cid != null) ? this->nodes[cid].cx : 0; };
+  auto ty = [&](auto cid) { return (cid != null) ? this->nodes[cid].cy : 0; };
+  auto tz = [&](auto cid) { return (cid != null) ? this->nodes[cid].cz : 0; };
+  auto ts = [&](auto cid) { return (cid != null) ? this->nodes[cid].size : 0; };
+  auto tm = [&](auto cid) { return (cid != null) ? this->nodes[cid].mass : 0; };
+
+  const float softening = 1e-9f;
+  auto m256_s = _mm256_broadcast_ss(&softening);
+  auto m256_sx = _mm256_broadcast_ss(&px);
+  auto m256_sy = _mm256_broadcast_ss(&py);
+  auto m256_sz = _mm256_broadcast_ss(&pz);
+
+  auto m256_dx = _mm256_set_ps(tx(nodes[0]),
+                              tx(nodes[1]),
+                              tx(nodes[2]),
+                              tx(nodes[3]),
+                              tx(nodes[4]),
+                              tx(nodes[5]),
+                              tx(nodes[6]),
+                              tx(nodes[7]));
+
+  auto m256_dy =  _mm256_set_ps(ty(nodes[0]),
+                              ty(nodes[1]),
+                              ty(nodes[2]),
+                              ty(nodes[3]),
+                              ty(nodes[4]),
+                              ty(nodes[5]),
+                              ty(nodes[6]),
+                              ty(nodes[7]));
+
+  auto m256_dz = _mm256_set_ps(tz(nodes[0]),
+                              tz(nodes[1]),
+                              tz(nodes[2]),
+                              tz(nodes[3]),
+                              tz(nodes[4]),
+                              tz(nodes[5]),
+                              tz(nodes[6]),
+                              tz(nodes[7]));
+
+  auto dx = _mm256_sub_ps(m256_dx, m256_sx);
+  auto dy = _mm256_sub_ps(m256_dy, m256_sy);
+  auto dz = _mm256_sub_ps(m256_dz, m256_sz);
+
+  const __m256 D = _mm256_fmadd_ps(dx, dx, _mm256_fmadd_ps(dy, dy, _mm256_fmadd_ps(dz, dz, m256_s)));
+  const __m256 D_inv = _mm256_rsqrt_ps(D);
+  const __m256 D_inv3 = _mm256_mul_ps(D_inv,_mm256_mul_ps(D_inv, D_inv));
+
+
+  const __m256 D_norm = _mm256_sqrt_ps(D);
+
+  auto m256_m = _mm256_set_ps(tm(nodes[0]),
+                            tm(nodes[1]),
+                            tm(nodes[2]),
+                            tm(nodes[3]),
+                            tm(nodes[4]),
+                            tm(nodes[5]),
+                            tm(nodes[6]),
+                            tm(nodes[7]));
+
+  auto m256_size = _mm256_set_ps(ts(nodes[0]),
+                               ts(nodes[1]),
+                               ts(nodes[2]),
+                               ts(nodes[3]),
+                               ts(nodes[4]),
+                               ts(nodes[5]),
+                               ts(nodes[6]),
+                               ts(nodes[7]));
+
+  auto m256_theta = _mm256_set1_ps(theta);
+  auto m256_threshold = _mm256_mul_ps(m256_size, m256_theta);
+  auto mask = predicate_operation(D_norm, m256_threshold);
+
+  fx = _mm256_fmadd_ps(D_inv3, _mm256_mul_ps(m256_m, _mm256_mul_ps(mask, dx)), fx);
+  fy = _mm256_fmadd_ps(D_inv3, _mm256_mul_ps(m256_m, _mm256_mul_ps(mask, dy)), fy);
+  fz = _mm256_fmadd_ps(D_inv3, _mm256_mul_ps(m256_m, _mm256_mul_ps(mask, dz)), fz);
+
+  for (uint_fast8_t i = 0; i < 8; ++i) {
+    auto c = nodes[i];
+    if (c != null && !this->nodes[c].is_leaf && D[i] >= this->nodes[c].size * theta)
+      force_at(px, py, pz, this->nodes[c].children, theta, fx, fy, fz);
+  }
+}
+

@@ -1,6 +1,8 @@
 #ifndef OCTREE_H_
 #define OCTREE_H_
 
+#include <immintrin.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <limits>
@@ -104,12 +106,13 @@ struct nodeSOA {
   float cx;
   float cy;
   float cz;
+  bool is_leaf = false;
   node_id children[8]{null, null, null, null, null, null, null, null};
 };
 
 class octreeSOA {
-  vec3 force_at(float const px, float const py, float const pz, node_id id,
-                float theta);
+  void force_at(float const px, float const py, float const pz, const node_id* nodes,
+                float theta, __m256& fx, __m256& fy, __m256& fz);
 
  public:
   octreeSOA(std::vector<float> px, std::vector<float> py, std::vector<float> pz,

@@ -10,7 +10,10 @@ int main(int argc, char** argv) {
   std::vector<float> py{0.71f, 0.26f, 0.14f, 0.55f, 0.34f};
   std::vector<float> pz{0.28f, 0.444f, 0.645f, 0.222f, 0.04f};
   std::vector<float> m{1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-  auto p = octreeSOA(px, py, pz, m);
+  auto p_true = octree(std::vector<vec3>({{0.2f, 0.71f, 0.28f}, {0.1f, 0.26f, 0.444f},
+                                          {0.3f, 0.14f, 0.64f}, {0.8f, 0.55f, 0.222f},
+                                          {0.971f, 0.34f, 0.04f}}), m);
+  auto p_test = octreeSOA(px, py, pz, m);
   return 1;
   argparse::ArgumentParser program("N-Body-Simulator");
   program.add_argument("-c", "--config")
