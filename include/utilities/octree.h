@@ -111,21 +111,16 @@ struct nodeSOA {
 };
 
 class octreeSOA {
-  void force_at(float const px, float const py, float const pz, const node_id* nodes,
-                float theta, __m256& fx, __m256& fy, __m256& fz);
-
  public:
-  octreeSOA(std::vector<float> px, std::vector<float> py, std::vector<float> pz,
-            std::vector<float>& masses);
-
+  octreeSOA(float *px, float *py, float *pz,
+            float *masses, uint64_t n_bodies);
+  void force_at(float px, float py, float pz, const node_id* nodes,
+                float theta, __m256& fx, __m256& fy, __m256& fz);
  private:
   boxSOA _bbox;
   node_id root;
   std::vector<nodeSOA> nodes;
-  std::vector<float> masses;
-  std::vector<float> px;
-  std::vector<float> py;
-  std::vector<float> pz;
+  float *masses, *px, *py, *pz;
   // [begin, end) is the sequence of points to build the quadtree on.
   node_id build_impl(boxSOA const& bbox, uint64_t begin, uint64_t end);
 };

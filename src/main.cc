@@ -2,18 +2,20 @@
 #include <fstream>
 
 #include "octree.h"
+#include "sequential_bh_avx.h"
 #include "simulation.h"
 #include "time_utils.h"
 
 int main(int argc, char** argv) {
-  std::vector<float> px{0.2f, 0.1f, 0.3f, 0.8f, 0.971f};
-  std::vector<float> py{0.71f, 0.26f, 0.14f, 0.55f, 0.34f};
-  std::vector<float> pz{0.28f, 0.444f, 0.645f, 0.222f, 0.04f};
-  std::vector<float> m{1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
-  auto p_true = octree(std::vector<vec3>({{0.2f, 0.71f, 0.28f}, {0.1f, 0.26f, 0.444f},
-                                          {0.3f, 0.14f, 0.64f}, {0.8f, 0.55f, 0.222f},
-                                          {0.971f, 0.34f, 0.04f}}), m);
-  auto p_test = octreeSOA(px, py, pz, m);
+  auto sim_test = SequentialBHAVX("/home/ste/Documents/SCPD-Project/simulation.conf", 0);
+  auto sim_true = SequentialBH("/home/ste/Documents/SCPD-Project/simulation.conf", 0);
+
+  for (float i = 0; i < 10; i+=0.01) {
+    sim_test.Update(0.01);
+    sim_test.LogsToCSV("/home/ste/Desktop/bug.csv");
+    sim_true.Update(0.01);
+    sim_true.LogsToCSV("/home/ste/Desktop/true.csv");
+  }
   return 1;
   argparse::ArgumentParser program("N-Body-Simulator");
   program.add_argument("-c", "--config")
