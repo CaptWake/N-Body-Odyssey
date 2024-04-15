@@ -51,6 +51,8 @@ add_executable(SCPD_Project
         include/data_structures/omp_bh.h
         src/data_structures/omp_bh.cc
         src/utilities/fileIO.cc
+        include/utilities/avx.h
+        src/data_structures/sequential_bh_avx.cpp
 )
 
 target_link_libraries(SCPD_Project argparse)

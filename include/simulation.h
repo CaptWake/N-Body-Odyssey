@@ -53,6 +53,11 @@ class Simulation {
         else
           this->sim_bh_seq = SequentialBH(
               sim_args["n_bodies"], sim_args["grav_const"], sim_args["theta"]);
+      } else if (sim_args["mode"] == "SEQ_AVX") {
+          if (sim_args.contains("ipath"))
+            this->sim_bh_avx_seq = SequentialBHAVX(sim_args["n_bodies"], sim_args["grav_const"], sim_args["theta"]);
+          else
+            this->sim_bh_avx_seq = SequentialBHAVX(sim_args["n_bodies"], sim_args["grav_const"], sim_args["theta"]);
       } else if (sim_args["mode"] == "OMP") {
         if (sim_args.contains("ipath"))
           this->sim_bh_omp = OmpBH(sim_args["ipath"],
@@ -93,8 +98,8 @@ class Simulation {
           if (!fname.empty()) this->sim_bh_seq.LogsToCSV(fname);
           this->sim_bh_seq.Update(dt);
         } else if (this->mode == "SEQ_AVX") {
-          if (!fname.empty()) this->sim_ap_avx_seq.LogsToCSV(fname);
-          this->sim_ap_avx_seq.Update(dt);
+          if (!fname.empty()) this->sim_bh_avx_seq.LogsToCSV(fname);
+          this->sim_bh_avx_seq.Update(dt);
         } else if (this->mode == "OMP") {
           if (!fname.empty()) this->sim_bh_omp.LogsToCSV(fname);
           this->sim_bh_omp.Update(dt);
@@ -108,6 +113,7 @@ class Simulation {
   SequentialAP sim_ap_seq;
   SequentialAPAVX sim_ap_avx_seq;
   SequentialBH sim_bh_seq;
+  SequentialBHAVX sim_bh_avx_seq;
   OmpAP sim_ap_omp;
   OmpBH sim_bh_omp;
   std::string algorithm, mode;
