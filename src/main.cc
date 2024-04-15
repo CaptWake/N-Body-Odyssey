@@ -7,15 +7,22 @@
 #include "time_utils.h"
 
 int main(int argc, char** argv) {
-  auto sim_test = SequentialBHAVX("/home/ste/Documents/SCPD-Project/simulation.conf", 0);
-  auto sim_true = SequentialBH("/home/ste/Documents/SCPD-Project/simulation.conf", 0);
+  //SequentialBHAVX(const uint64_t n_bodies, const float grav_const, float theta)
+  auto sim_test = SequentialBHAVX(1024, 1, 0);
+  auto sim_true = SequentialBH(1024, 1, 0);
 
+  TIMERSTART(sim)
+  for (float i = 0; i < 10; i+=0.01) {
+    sim_true.Update(0.01);
+  }
+  TIMERSTOP(sim)
+
+  TIMERSTART(avx)
   for (float i = 0; i < 10; i+=0.01) {
     sim_test.Update(0.01);
-    sim_test.LogsToCSV("/home/ste/Desktop/bug.csv");
-    sim_true.Update(0.01);
-    sim_true.LogsToCSV("/home/ste/Desktop/true.csv");
   }
+  TIMERSTOP(avx)
+
   return 1;
   argparse::ArgumentParser program("N-Body-Simulator");
   program.add_argument("-c", "--config")
