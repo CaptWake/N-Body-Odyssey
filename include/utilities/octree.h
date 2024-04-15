@@ -44,6 +44,7 @@ struct node {
   float mass{0.f};
   float size{0.f};
   vec3 center{0.f, 0.f, 0.f};
+  bool is_leaf = false;
   node_id children[8]{null, null, null, null, null, null, null, null};
 };
 

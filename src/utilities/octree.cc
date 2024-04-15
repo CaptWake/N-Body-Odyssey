@@ -17,15 +17,7 @@ vec3 octree::force_at(const vec3& p, node_id id, float theta) {
     auto d_inv = 1.0f / sqrtf(l);
     auto d_inv3 = d_inv * d_inv * d_inv;
 
-    // TODO: discuss the following fact: we have to set a bool indicating if we
-    // are a leaf or not? compute the force if we are a leaf or the theta is
-    // respected
-    if (n.children[0] == null && n.children[1] == null &&
-            n.children[2] == null && n.children[3] == null &&
-            n.children[4] == null && n.children[5] == null &&
-            n.children[6] == null && n.children[7] == null ||
-        // TODO: avoid recomputing the vector norm, we have already the l variable
-        d.length() < n.size * theta)
+    if (n.is_leaf || sqrtf(l - 1e-9f) < n.size * theta)
       return n.mass * d * d_inv3;
   }
   vec3 total_force{0.f, 0.f, 0.f};
@@ -52,6 +44,7 @@ inline node_id octree::build_impl(const box& bbox, Iterator begin,
     auto id = begin - this->points.begin();
     this->nodes[result].mass = 1.0f;  // this->masses[id];
     this->nodes[result].center = this->points[id];
+    this->nodes[result].is_leaf = true;
     return result;
   }
 
