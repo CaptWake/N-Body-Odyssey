@@ -27,7 +27,8 @@ class SequentialBHAVX : NBody {
   }
 
   // generate random samples
-  SequentialBHAVX(const uint64_t n_bodies, const float grav_const, float theta) {
+  SequentialBHAVX(const uint64_t n_bodies, const float grav_const,
+                  float theta) {
     static std::random_device rd;  // random device engine, usually based on
     // /dev/random on UNIX-like systems
     // initialize Mersennes' twister using rd to generate the seed

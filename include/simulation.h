@@ -54,10 +54,12 @@ class Simulation {
           this->sim_bh_seq = SequentialBH(
               sim_args["n_bodies"], sim_args["grav_const"], sim_args["theta"]);
       } else if (sim_args["mode"] == "SEQ_AVX") {
-          if (sim_args.contains("ipath"))
-            this->sim_bh_avx_seq = SequentialBHAVX(sim_args["n_bodies"], sim_args["grav_const"], sim_args["theta"]);
-          else
-            this->sim_bh_avx_seq = SequentialBHAVX(sim_args["n_bodies"], sim_args["grav_const"], sim_args["theta"]);
+        if (sim_args.contains("ipath"))
+          this->sim_bh_avx_seq = SequentialBHAVX(
+              sim_args["n_bodies"], sim_args["grav_const"], sim_args["theta"]);
+        else
+          this->sim_bh_avx_seq = SequentialBHAVX(
+              sim_args["n_bodies"], sim_args["grav_const"], sim_args["theta"]);
       } else if (sim_args["mode"] == "OMP") {
         if (sim_args.contains("ipath"))
           this->sim_bh_omp = OmpBH(sim_args["ipath"],

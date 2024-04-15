@@ -113,10 +113,10 @@ struct nodeSOA {
 
 class octreeSOA {
  public:
-  octreeSOA(float *px, float *py, float *pz,
-            float *masses, uint64_t n_bodies);
-  void force_at(float px, float py, float pz, const node_id* nodes,
-                float theta, __m256& fx, __m256& fy, __m256& fz);
+  octreeSOA(float* px, float* py, float* pz, float* masses, uint64_t n_bodies);
+  void force_at(float px, float py, float pz, const node_id* nodes, float theta,
+                __m256& fx, __m256& fy, __m256& fz);
+
  private:
   boxSOA _bbox;
   node_id root;

@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <sstream>
+
 #include "avx.h"
 
 void SequentialAPAVX::Update(float dt) {
