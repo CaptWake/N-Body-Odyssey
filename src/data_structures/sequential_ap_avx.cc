@@ -3,20 +3,39 @@
 
 #include <fstream>
 #include <sstream>
-
+#include "nbody_helpers.h"
 #include "avx.h"
 
-void SequentialAPAVX::Update(float dt) {
+void InitSequentialAPAVX(const uint64_t n, float *m, float *px, float*py, float*pz, float *vx, float *vy, float *vz){
+
+  // Initialize masses equally
+  InitMassU(n, m);
+
+  // Initialize position with uniform distribution
+  InitPosUSoa(n, px, py, pz);
+
+  // Initialize velocities with uniform distribution
+  InitVelUSoa(n, vx, vy, vz);
+
+  // Translate bodies to move the center of mass on center of the coordinate system
+  Move2CenterSoa(n, m, px, py, pz, vx, vy, vz);
+
+  // Rescale energy
+  RescaleEnergySoa(n, m, px, py, pz, vx, vy, vz);
+}
+
+// copyright NVIDIA
+void SequentialAPAVXUpdate(const uint64_t n, float *m, float *px, float *py, float *pz, float *vx, float *vy, float *vz, const float dt) {
   __m256 DT = _mm256_set_ps(dt, dt, dt, dt, dt, dt, dt, dt);
   __m256 s = _mm256_set_ps(
       1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f);
 
-  for (uint64_t i = 0; i < n_bodies; ++i) {
+  for (uint64_t i = 0; i < n; ++i) {
     __m256 Fx = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
     __m256 Fy = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
     __m256 Fz = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 
-    for (uint64_t j = 0; j < n_bodies;
+    for (uint64_t j = 0; j < n;
          j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
 
       const __m256 Xi = _mm256_broadcast_ss(px + i);
@@ -55,7 +74,7 @@ void SequentialAPAVX::Update(float dt) {
     vz[i] += hsum_avx(Vz);
   }
 
-  for (uint64_t i = 0; i < n_bodies; i += 8) {
+  for (uint64_t i = 0; i < n; i += 8) {
     const __m256 X = _mm256_loadu_ps(px + i);
     const __m256 Y = _mm256_loadu_ps(py + i);
     const __m256 Z = _mm256_loadu_ps(pz + i);
@@ -74,30 +93,26 @@ void SequentialAPAVX::Update(float dt) {
   }
 }
 
-std::ostream &operator<<(std::ostream &os, const SequentialAPAVX &nbody) {
-  os << "Gravitational constant: " << nbody.G << std::endl;
 
-  for (uint64_t i = 0; i < nbody.n_bodies; ++i) {
-    os << "Body " << i + 1 << ":\n";
-    os << "  Mass: " << nbody.m[i] << std::endl;
-    os << "  Position (x, y, z): " << nbody.px[i] << ", " << nbody.py[i] << ", "
-       << nbody.pz[i] << std::endl;
-    os << "  Velocity (vx, vy, vz): " << nbody.vx[i] << ", " << nbody.vy[i]
-       << ", " << nbody.vz[i] << std::endl;
-  }
-  return os;
-}
+void SequentialAPAVXSimulate(uint64_t n, float dt, float tEnd, uint64_t seed){
+  float *m = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
+  float *px = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
+  float *py = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
+  float *pz = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
+  float *vx = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
+  float *vy = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
+  float *vz = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
 
-void SequentialAPAVX::LogsToCSV(const std::string &filename) const {
-  std::ofstream file(filename, std::ios_base::app);
-  if (file.is_open()) {
-    for (uint64_t i = 0; i < n_bodies; ++i) {
-      file << px[i] << "," << py[i] << "," << pz[i];
-      if (i < n_bodies - 1) file << ",";
-    }
-    file << std::endl;
-    file.close();
-  } else {
-    std::cerr << "Unable to open file: " << filename << std::endl;
+  // Init Bodies
+  InitSequentialAPAVX(n, m, px, py, pz, vx, vy, vz);
+
+  // Simulation Loop
+  for (float t = 0.0f; t < tEnd; t += dt){
+    // Update Bodies
+    SequentialAPAVXUpdate(n, m, px, py, pz, vx, vy, vz, dt);
+    float ek = EkSoa(n, m, vx, vy ,vz);
+    float ep = EpSoa(n, m, px, py, pz);
+    std::cout << "Etot: " <<ek+ep <<std::endl;
+    t += dt;
   }
 }

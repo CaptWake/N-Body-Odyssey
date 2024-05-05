@@ -8,9 +8,6 @@
 #include "nbody.h"
 #include "vec3.h"
 
-class SequentialBHAVX : NBody {
- public:
-  SequentialBHAVX() = default;
 
   SequentialBHAVX(const std::string &fname, const float theta) {
     std::vector<float> _m, _px, _py, _pz, _vx, _vy, _vz;
@@ -67,6 +64,5 @@ class SequentialBHAVX : NBody {
   float *px, *py, *pz, *vx, *vy, *vz, *m;
   float G{}, theta{};
   uint64_t n_bodies{};
-};
 
 #endif

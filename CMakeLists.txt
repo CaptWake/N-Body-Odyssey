@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.27)
 project(SCPD_Project)
 
 # GoogleTest requires at least C++14
@@ -32,7 +31,6 @@ FetchContent_MakeAvailable(argparse)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -fopenmp")
 
 add_executable(SCPD_Project
-        include/data_structures/nbody.h
         include/utilities/fileIO.h
         include/utilities/vec3.h
         include/utilities/octree.h
@@ -53,6 +51,7 @@ add_executable(SCPD_Project
         src/utilities/fileIO.cc
         include/utilities/avx.h
         src/data_structures/sequential_bh_avx.cpp
+        include/utilities/nbody_helpers.h
 )
 
 target_link_libraries(SCPD_Project argparse)
@@ -61,7 +60,6 @@ add_executable(
         NBody_test
         tests/data_structures/nbody_test.cpp
         include/utilities/vec3.h
-        include/data_structures/nbody.h
         include/data_structures/sequential_ap.h
         src/data_structures/sequential_ap.cc
         include/nlohmann/json.hpp

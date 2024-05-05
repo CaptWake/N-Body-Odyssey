@@ -1,0 +1,30 @@
+{
+  "experiments": [
+    {
+      "name": "All pairs omp",
+      "algorithm": "AP",
+      "mode": "OMP",
+      "ipath": "../../simulation.conf",
+      "opath": "../../test1.csv",
+      "tot_time": 10,
+      "time_step": 0.01,
+      "n_bodies": 2048,
+      "grav_const": 1.0,
+      "num_threads": 8,
+      "schedule_type": "static",
+      "chunk_size": 1
+    },
+    {
+      "name": "Barnes-Hut Sequential",
+      "algorithm": "BH",
+      "mode": "SEQ",
+      "ipath": "../../simulation.conf",
+      "opath": "../../test2.csv",
+      "tot_time": 10,
+      "time_step": 0.01,
+      "n_bodies": 2048,
+      "grav_const": 1.0,
+      "theta": 0.0
+    }
+  ]
+}
