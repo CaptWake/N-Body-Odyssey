@@ -5,6 +5,7 @@
 #include <sstream>
 #include "nbody_helpers.h"
 #include "avx.h"
+#include "time_utils.h"
 
 void InitSequentialAPAVX(const uint64_t n, float *m, float *px, float*py, float*pz, float *vx, float *vy, float *vz){
 
@@ -115,4 +116,14 @@ void SequentialAPAVXSimulate(uint64_t n, float dt, float tEnd, uint64_t seed){
     std::cout << "Etot: " <<ek+ep <<std::endl;
     t += dt;
   }
+}
+
+int main (int argc, char **argv) {
+  if (argc < 2) {
+    std::cerr << "Must specify the number of bodies" << std::endl;
+    exit(1);
+  }
+  TIMERSTART(simulation)
+  SequentialAPAVXSimulate(std::stoul(argv[1]), 0.01, 10, 0);
+  TIMERSTOP(simulation)
 }

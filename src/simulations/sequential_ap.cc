@@ -2,8 +2,8 @@
 
 #include <cmath>
 #include <fstream>
-#include <sstream>
 #include "nbody_helpers.h"
+#include "time_utils.h"
 
 void InitSequentialAP(const uint64_t n, float *m, float *p, float *v, float *a){
 
@@ -68,7 +68,7 @@ static inline void performNBodyHalfStepA(uint64_t n, float dt,
                                          float* v,
                                          const float* a,
                                          const float* m){
-  for (long i = 0; i < n; ++i) {
+  for (uint64_t i = 0; i < n; ++i) {
     //kick, drift
     v[3*i + 0] += 0.5f * a[3*i + 0] * dt;
     p[3*i + 0] += v[3*i + 0] * dt;
@@ -85,7 +85,7 @@ static inline void performNBodyHalfStepB(uint64_t n, float dt,
                                         const float* a,
                                         const float* m)
 {
-  for (long i = 0; i < n; ++i) {
+  for (uint64_t i = 0; i < n; ++i) {
     //kick
     v[3*i + 0] += 0.5f * a[3*i + 0] * dt;
     v[3*i + 1] += 0.5f * a[3*i + 1] * dt;
@@ -164,7 +164,7 @@ void SequentialAPSimulate2(uint64_t n, float dt, float tEnd, uint64_t seed){
   for (float t = 0.0f; t < tEnd; t += dt){
     // Update Bodies
     performNBodyHalfStepA(n, dt, p, v, a, m);
-    for (int i = 0; i < n; ++i) {
+    for (uint64_t i = 0; i < n; ++i) {
       computeForce(n, i, m, p ,a);
     }
     performNBodyHalfStepB(n, dt, p, v, a, m);
@@ -174,4 +174,15 @@ void SequentialAPSimulate2(uint64_t n, float dt, float tEnd, uint64_t seed){
 
     t += dt;
   }
+}
+
+int main (int argc, char **argv) {
+  if (argc < 2) {
+    std::cerr << "Must specify the number of bodies" << std::endl;
+    exit(1);
+  }
+  srand(1714995103);
+  TIMERSTART(simulation)
+  SequentialAPSimulate(std::stoul(argv[1]), 0.01, 10, 0);
+  TIMERSTOP(simulation)
 }

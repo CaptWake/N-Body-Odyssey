@@ -3,12 +3,10 @@
 
 //#include "octree.h"
 //#include "sequential_bh_avx.h"
-//#include "simulation.h"
 //#include "time_utils.h"
 #include "sequential_ap.h"
 
 int main(int argc, char** argv) {
-
   SequentialAPSimulate2(2048, 0.01f, 10.0f, 1);
   // -xAVX2 and -xMIC-AVX512 flags force the compiler to generate AVX2
   // and AVX-512 SIMD instructions, respectively. AVX2 extensions accelerated

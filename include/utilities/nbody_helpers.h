@@ -7,19 +7,21 @@
 
 #include <cstdint>
 #include <random>
+#include <stdlib.h>
 
 constexpr float _G = 1;
 constexpr float _M = 1;
 
-static std::mt19937 engine{0};
-std::uniform_real_distribution<float> density(0, 1);
+/* pi */
+static const double _PI = 2.0*asin(1);
+
+static inline float frand() {
+  return ((float) rand()) / (float) RAND_MAX;
+}
+
 // Function to export bodies information to CSV file
 
 //void LogsToCSV(const std::string& filename);
-
-void InitEngine(uint64_t seed){
-  engine.seed(seed);
-}
 
 // Initialization taken from https://github.com/alexgbrandt/Parallel-NBody/
 
@@ -68,9 +70,9 @@ void InitPosU(uint64_t n, float *p){
   float R, X, Y;
   uint64_t i;
   for (i = 0; i < n; ++i) {
-    R = density(engine);
-    X = acosf(1.0f - 2.0f*density(engine));
-    Y = density(engine)*2.0f*M_PI;
+    R = frand();
+    X = acosf(1.0f - 2.0f*frand());
+    Y = frand()*2.0f*_PI;
 
     //https://www.researchgate.net/figure/Figure-A1-Spherical-coordinates_fig8_284609648
     p[3*i + 0] = R*sinf(X)*cosf(Y);
@@ -82,9 +84,9 @@ void InitPosU(uint64_t n, float *p){
 void InitVelU(uint64_t n, float *v){
   uint64_t i;
   for (i = 0; i < n; ++i) {
-    v[3*i] = (1.0f - 2.0f*density(engine));
-    v[3*i + 1] = (1.0f - 2.0f*density(engine));
-    v[3*i + 2] = (1.0f - 2.0f*density(engine));
+    v[3*i] = (1.0f - 2.0f*frand());
+    v[3*i + 1] = (1.0f - 2.0f*frand());
+    v[3*i + 2] = (1.0f - 2.0f*frand());
   }
 }
 
@@ -190,9 +192,9 @@ void InitPosUSoa(uint64_t n, float *px, float *py, float *pz){
   float R, X, Y;
   uint64_t i;
   for (i = 0; i < n; ++i) {
-    R = density(engine);
-    X = acosf(1.0f - 2.0f*density(engine));
-    Y = density(engine)*2.0f*M_PI;
+    R = frand();
+    X = acosf(1.0f - 2.0f*frand());
+    Y = frand()*2.0f*_PI;
 
     //https://www.researchgate.net/figure/Figure-A1-Spherical-coordinates_fig8_284609648
     px[i] = R*sinf(X)*cosf(Y);
@@ -204,9 +206,9 @@ void InitPosUSoa(uint64_t n, float *px, float *py, float *pz){
 void InitVelUSoa(uint64_t n, float *vx, float *vy, float *vz){
   uint64_t i;
   for (i = 0; i < n; ++i) {
-    vx[i] = (1.0f - 2.0f*density(engine));
-    vy[i] = (1.0f - 2.0f*density(engine));
-    vz[i] = (1.0f - 2.0f*density(engine));
+    vx[i] = (1.0f - 2.0f*frand());
+    vy[i] = (1.0f - 2.0f*frand());
+    vz[i] = (1.0f - 2.0f*frand());
   }
 }
 
