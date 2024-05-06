@@ -5,10 +5,6 @@
 #include <iostream>
 #include <random>
 
-
-  // Initialization //
-  void InitSequentialAP(uint64_t n, float *m, float *p, float *v);
-
   // Update //
   void SequentialAPUpdate(float dt);
 

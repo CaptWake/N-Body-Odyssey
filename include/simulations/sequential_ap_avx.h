@@ -6,8 +6,6 @@
 #include <random>
 
 #include "fileIO.h"
-// Initialization //
-void InitSequentialAPAVX(uint64_t n, float *m, float *px, float *py, float*pz, float *vx, float *vy, float *vz);
 
 // Update //
 void SequentialAPAVXUpdate(float dt);

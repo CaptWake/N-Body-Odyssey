@@ -26,7 +26,7 @@ nbody_sequential_ap_avx: $(SRC_DIR)sequential_ap_avx.cc
 	$(CXX) $(CXXFLAGS) $(AVX_FLAGS) $(SRC_DIR)sequential_ap_avx.cc -I$(SIM_HEADER_DIR) -I$(UTILS_DIR) -o $@
 
 nbody_omp_ap: $(SRC_DIR)omp_ap.cc
-	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_ap.cc -I$(SIM_HEADER_DIR) -I$(UTILS_DIR) -o $@
+	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_ap.cc -I$(SIM_HEADER_DIR) -I$(UTILS_DIR) -o $@ -DOMP
 
 nbody_sequential_bh: $(SRC_DIR)sequential_bh.cc
 	$(CXX) $(CXXFLAGS) $(SRC_DIR)sequential_bh.cc -I$(SIM_HEADER_DIR) -I$(UTILS_DIR) -o $@
@@ -35,7 +35,7 @@ nbody_sequential_bh_avx: $(SRC_DIR)sequential_bh_avx.cc
 	$(CXX) $(CXXFLAGS) $(AVX_FLAGS) $(SRC_DIR)sequential_bh_avx.cc -I$(SIM_HEADER_DIR) -I$(UTILS_DIR) -o $@
 
 nbody_omp_bh: $(SRC_DIR)omp_bh.cc
-	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_bh.cc -I$(SIM_HEADER_DIR) -I$(UTILS_DIR) -o $@
+	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_bh.cc -I$(SIM_HEADER_DIR) -I$(UTILS_DIR) -o $@ -DOMP
 
 # Generic object file compilation rule
 $(OBJECTS): $(SRC_DIR)%.cc

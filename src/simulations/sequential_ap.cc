@@ -5,27 +5,6 @@
 #include "nbody_helpers.h"
 #include "time_utils.h"
 
-void InitSequentialAP(const uint64_t n, float *m, float *p, float *v, float *a){
-
-  // Initialize masses equally
-  InitMassU(n, m);
-
-  // Initialize position with uniform distribution
-  InitPosU(n, p);
-
-  // Initialize velocities with uniform distribution
-  InitVelU(n, v);
-
-  // Initialize masses equally
-  InitAccU(n, a);
-
-  // Translate bodies to move the center of mass on center of the coordinate system
-  Move2Center(n, m, p, v);
-
-  // Rescale energy
-  RescaleEnergy(n, m, p, v);
-}
-
 void computeForce(uint64_t n, uint64_t i,
                   const float* m,
                   const float* p,
@@ -44,7 +23,7 @@ void computeForce(uint64_t n, uint64_t i,
     dy = p[3*j + 1] - py;
     dz = p[3*j + 2] - pz;
     D = dx*dx + dy*dy + dz*dz;
-    D += 1e-09*1e-09;
+    D += _SOFTENING*_SOFTENING;
     D = 1.0f / (D*sqrtf(D));
     ai[0] += m[j]*dx*D;
     ai[1] += m[j]*dy*D;
@@ -55,7 +34,7 @@ void computeForce(uint64_t n, uint64_t i,
     dy = p[3*j + 1] - py;
     dz = p[3*j + 2] - pz;
     D = dx*dx + dy*dy + dz*dz;
-    D += 1e-09* 1e-09;
+    D += _SOFTENING*_SOFTENING ;
     D = 1.0f / (D*sqrtf(D));
     ai[0] += m[j]*dx*D;
     ai[1] += m[j]*dy*D;
@@ -100,7 +79,7 @@ void SequentialAPUpdate(const uint64_t n, float *m, float *p , float *v, const f
     float fx = 0.0f;
     float fy = 0.0f;
     float fz = 0.0f;
-    for (uint64_t j = i + 1; j < n * 3; j += 3) {
+    for (uint64_t j = 0; j < n * 3; j += 3) {
       auto m2_id = j / 3;
       // compute distance pair
       auto dx = p[j] - p[i];
@@ -108,7 +87,7 @@ void SequentialAPUpdate(const uint64_t n, float *m, float *p , float *v, const f
       auto dy = p[j + 1] - p[i + 1];
       auto dz = p[j + 2] - p[i + 2];
 
-      auto d = dx * dx + dy * dy + dz * dz + 1e-9f * 1e-9f;
+      auto d = dx * dx + dy * dy + dz * dz + _SOFTENING*_SOFTENING;
       auto d_inv = 1.0f / sqrtf(d);
       auto d_inv3 = d_inv * d_inv * d_inv;
 
@@ -130,6 +109,7 @@ void SequentialAPUpdate(const uint64_t n, float *m, float *p , float *v, const f
 }
 
 
+// Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
 void SequentialAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed){
   float *m = new float[n];
   float *p = new float[3 * n];
@@ -137,7 +117,7 @@ void SequentialAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed){
   float *a = new float[3 * n];
 
   // Init Bodies
-  InitSequentialAP(n, m, p, v, a);
+  InitAos(n, m, p, v, a);
 
   // Simulation Loop
   for (float t = 0.0f; t < tEnd; t += dt){
@@ -146,11 +126,10 @@ void SequentialAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed){
     float ek = Ek(n, m, v);
     float ep = Ep(n, m, p);
     std::cout << "Etot: " <<ek+ep <<std::endl;
-
-    t += dt;
   }
 }
 
+// Kick-drift-kick //
 void SequentialAPSimulate2(uint64_t n, float dt, float tEnd, uint64_t seed){
   float *m = new float[n];
   float *p = new float[3 * n];
@@ -158,8 +137,8 @@ void SequentialAPSimulate2(uint64_t n, float dt, float tEnd, uint64_t seed){
   float *a = new float[3 * n];
 
   // Init Bodies
-  InitSequentialAP(n, m, p, v, a);
-
+  uint64_t j = 0;
+  InitAos(n, m, p, v, a);
   // Simulation Loop
   for (float t = 0.0f; t < tEnd; t += dt){
     // Update Bodies
@@ -170,9 +149,8 @@ void SequentialAPSimulate2(uint64_t n, float dt, float tEnd, uint64_t seed){
     performNBodyHalfStepB(n, dt, p, v, a, m);
     float ek = Ek(n, m, v);
     float ep = Ep(n, m, p);
-    std::cout << "Etot: " <<ek+ep <<std::endl;
-
-    t += dt;
+    std::cout << "iteration: "<< j <<" Etot: " <<ek+ep <<std::endl;
+    j++;
   }
 }
 
@@ -181,8 +159,8 @@ int main (int argc, char **argv) {
     std::cerr << "Must specify the number of bodies" << std::endl;
     exit(1);
   }
-  srand(1714995103);
+  srand(0);
   TIMERSTART(simulation)
-  SequentialAPSimulate(std::stoul(argv[1]), 0.01, 10, 0);
+  SequentialAPSimulate(std::stoul(argv[1]), 0.01, 0.1, 0);
   TIMERSTOP(simulation)
 }

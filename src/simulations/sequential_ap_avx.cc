@@ -7,37 +7,18 @@
 #include "avx.h"
 #include "time_utils.h"
 
-void InitSequentialAPAVX(const uint64_t n, float *m, float *px, float*py, float*pz, float *vx, float *vy, float *vz){
-
-  // Initialize masses equally
-  InitMassU(n, m);
-
-  // Initialize position with uniform distribution
-  InitPosUSoa(n, px, py, pz);
-
-  // Initialize velocities with uniform distribution
-  InitVelUSoa(n, vx, vy, vz);
-
-  // Translate bodies to move the center of mass on center of the coordinate system
-  Move2CenterSoa(n, m, px, py, pz, vx, vy, vz);
-
-  // Rescale energy
-  RescaleEnergySoa(n, m, px, py, pz, vx, vy, vz);
-}
-
 // copyright NVIDIA
 void SequentialAPAVXUpdate(const uint64_t n, float *m, float *px, float *py, float *pz, float *vx, float *vy, float *vz, const float dt) {
-  __m256 DT = _mm256_set_ps(dt, dt, dt, dt, dt, dt, dt, dt);
-  __m256 s = _mm256_set_ps(
-      1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f, 1e-09f);
+  static __m256 DT = _mm256_set_ps(dt, dt, dt, dt, dt, dt, dt, dt);
+  static __m256 s = _mm256_set_ps(
+      _SOFTENING,_SOFTENING,_SOFTENING,_SOFTENING,_SOFTENING,_SOFTENING,_SOFTENING,_SOFTENING);
 
   for (uint64_t i = 0; i < n; ++i) {
     __m256 Fx = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
     __m256 Fy = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
     __m256 Fz = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 
-    for (uint64_t j = 0; j < n;
-         j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
+    for (uint64_t j = 0; j < n; j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
 
       const __m256 Xi = _mm256_broadcast_ss(px + i);
       const __m256 Yi = _mm256_broadcast_ss(py + i);
@@ -52,12 +33,12 @@ void SequentialAPAVXUpdate(const uint64_t n, float *m, float *px, float *py, flo
       const __m256 Z = _mm256_sub_ps(Zj, Zi);
 
       __m256 M = _mm256_loadu_ps(m + j);
-      const __m256 mask =
-          _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
-      M = _mm256_mul_ps(M, mask);
+      //const __m256 mask =
+      //   _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+      //M = _mm256_mul_ps(M, mask);
 
       const __m256 D = _mm256_fmadd_ps(
-          X, X, _mm256_fmadd_ps(Y, Y, _mm256_fmadd_ps(Z, Z, s)));
+          X, X, _mm256_fmadd_ps(Y, Y, _mm256_fmadd_ps(Z, Z, _mm256_mul_ps(s,s))));
       const __m256 D_inv = _mm256_rsqrt_ps(D);
       const __m256 D_inv3 = _mm256_mul_ps(
           D_inv,
@@ -105,7 +86,7 @@ void SequentialAPAVXSimulate(uint64_t n, float dt, float tEnd, uint64_t seed){
   float *vz = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
 
   // Init Bodies
-  InitSequentialAPAVX(n, m, px, py, pz, vx, vy, vz);
+  InitSoa(n, m, px, py, pz, vx, vy, vz);
 
   // Simulation Loop
   for (float t = 0.0f; t < tEnd; t += dt){
@@ -114,7 +95,6 @@ void SequentialAPAVXSimulate(uint64_t n, float dt, float tEnd, uint64_t seed){
     float ek = EkSoa(n, m, vx, vy ,vz);
     float ep = EpSoa(n, m, px, py, pz);
     std::cout << "Etot: " <<ek+ep <<std::endl;
-    t += dt;
   }
 }
 
@@ -124,6 +104,7 @@ int main (int argc, char **argv) {
     exit(1);
   }
   TIMERSTART(simulation)
-  SequentialAPAVXSimulate(std::stoul(argv[1]), 0.01, 10, 0);
+  srand(0);
+  SequentialAPAVXSimulate(std::stoul(argv[1]), 0.01, 0.1, 0);
   TIMERSTOP(simulation)
 }

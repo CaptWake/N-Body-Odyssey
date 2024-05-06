@@ -8,9 +8,14 @@
 #include <cstdint>
 #include <random>
 #include <stdlib.h>
+#include <string>
+#ifdef OMP
+#include <omp.h>
+#endif
 
 constexpr float _G = 1;
 constexpr float _M = 1;
+constexpr float _SOFTENING = 0.025f;
 
 /* pi */
 static const double _PI = 2.0*asin(1);
@@ -154,6 +159,27 @@ void RescaleEnergy(uint64_t n, float *m, float *p, float *v){
   scale3NArray(n, v, 1.0f/sqrtf(beta));
 }
 
+void InitAos(const uint64_t n, float *m, float *p, float *v, float *a){
+
+  // Initialize masses equally
+  InitMassU(n, m);
+
+  // Initialize position with uniform distribution
+  InitPosU(n, p);
+
+  // Initialize velocities with uniform distribution
+  InitVelU(n, v);
+
+  // Initialize masses equally
+  InitAccU(n, a);
+
+  // Translate bodies to move the center of mass on center of the coordinate system
+  Move2Center(n, m, p, v);
+
+  // Rescale energy
+  RescaleEnergy(n, m, p, v);
+}
+
 // SOA
 
 static inline void scaleArray(uint64_t n, float* m, float scale) {
@@ -252,14 +278,13 @@ void Move2CenterSoa(uint64_t n, float *m, float *px, float *py, float *pz, float
     vx[i] -= vvx;
     vy[i] -= vvy;
     vz[i] -= vvz;
-
   }
 }
 
 void RescaleEnergySoa(uint64_t n, float *m, float *px, float *py, float *pz, float *vx, float *vy, float *vz){
   //Aarseth, 2003, Algorithm 7.2.
   float Epot =  EpSoa(n, m, px, py, pz);
-  float Ekin =  EkSoa(n, m, vx, py, pz);
+  float Ekin =  EkSoa(n, m, vx, vy, vz);
   float virialRatio = 0.5f;
   float Qv = sqrtf(virialRatio*fabsf(Epot)/Ekin);
   scaleArray(n, vx, Qv);
@@ -286,6 +311,36 @@ void RescaleEnergySoa(uint64_t n, float *m, float *px, float *py, float *pz, flo
   scaleArray(n, vz, 1.0f/sqrtf(beta));
 }
 
+void InitSoa(const uint64_t n, float *m, float *px, float*py, float*pz, float *vx, float *vy, float *vz){
 
+  // Initialize masses equally
+  InitMassU(n, m);
 
+  // Initialize position with uniform distribution
+  InitPosUSoa(n, px, py, pz);
+
+  // Initialize velocities with uniform distribution
+  InitVelUSoa(n, vx, vy, vz);
+
+  // Translate bodies to move the center of mass on center of the coordinate system
+  Move2CenterSoa(n, m, px, py, pz, vx, vy, vz);
+
+  // Rescale energy
+  RescaleEnergySoa(n, m, px, py, pz, vx, vy, vz);
+}
+
+#ifdef OMP
+// OMP
+void SetScheduleType(const std::string& schedule_type, int chunk_size){
+  if (schedule_type == "static") {
+    omp_set_schedule(omp_sched_static, chunk_size);
+  } else {
+    omp_set_schedule(omp_sched_dynamic, chunk_size);
+  }
+}
+
+void SetNumThread(int num_threads) {
+  omp_set_num_threads(num_threads);
+}
+#endif
 #endif //NBODY_HELPERS_H_
