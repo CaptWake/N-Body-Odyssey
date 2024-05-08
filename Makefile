@@ -41,6 +41,9 @@ nbody_sequential_bh_avx: $(SRC_DIR)sequential_bh_avx.cc
 nbody_omp_bh: $(SRC_DIR)omp_bh.cc
 	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_bh.cc -I$(INCLUDE_DIR) -o $@ -DOMP
 
+nbody_mpi_omp_avx_ap: $(SRC_DIR)mpi_omp_avx_ap.cc
+	$(MPIPPC) $(CXXFLAGS) $(OPENMP_FLAGS) $(AVX_FLAGS) -DOMP $(SRC_DIR)mpi_omp_avx_ap.cc -I$(INCLUDE_DIR) -o $@
+
 # Generic object file compilation rule
 $(OBJECTS): $(SRC_DIR)%.cc
 	$(CXX) $(CXXFLAGS) $< -I$(INCLUDE_DIR) -o $@
