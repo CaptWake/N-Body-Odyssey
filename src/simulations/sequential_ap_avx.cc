@@ -1,11 +1,8 @@
-
-#include "sequential_ap_avx.h"
-
-#include <fstream>
-#include <sstream>
-#include "nbody_helpers.h"
-#include "avx.h"
-#include "time_utils.h"
+#include <iostream>
+#include "simulations/sequential_ap_avx.h"
+#include "utilities/avx.h"
+#include "utilities/nbody_helpers.h"
+#include "utilities/time_utils.h"
 
 // copyright NVIDIA
 void SequentialAPAVXUpdate(const uint64_t n, float *m, float *px, float *py, float *pz, float *vx, float *vy, float *vz, const float dt) {

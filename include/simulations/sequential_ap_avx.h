@@ -2,10 +2,6 @@
 #define SEQUENTIAL_AP_AVX_H_
 
 #include <cstdint>
-#include <iostream>
-#include <random>
-
-#include "fileIO.h"
 
 // Update //
 void SequentialAPAVXUpdate(float dt);

@@ -1,8 +1,8 @@
-#include "omp_ap.h"
+#include "simulations/omp_ap.h"
 #include <omp.h>
 #include <cmath>
-#include "nbody_helpers.h"
-#include "time_utils.h"
+#include "utilities/nbody_helpers.h"
+#include "utilities/time_utils.h"
 #include <iostream>
 
 // copyright NVIDIA

@@ -1,9 +1,9 @@
-#include "sequential_ap.h"
-
 #include <cmath>
 #include <fstream>
-#include "nbody_helpers.h"
-#include "time_utils.h"
+#include "simulations/sequential_ap.h"
+#include "utilities/integrators.h"
+#include "utilities/nbody_helpers.h"
+#include "utilities/time_utils.h"
 
 void computeForce(uint64_t n, uint64_t i,
                   const float* m,
@@ -42,37 +42,6 @@ void computeForce(uint64_t n, uint64_t i,
   }
 }
 
-static inline void performNBodyHalfStepA(uint64_t n, float dt,
-                                         float* p,
-                                         float* v,
-                                         const float* a,
-                                         const float* m){
-  for (uint64_t i = 0; i < n; ++i) {
-    //kick, drift
-    v[3*i + 0] += 0.5f * a[3*i + 0] * dt;
-    p[3*i + 0] += v[3*i + 0] * dt;
-    v[3*i + 1] += 0.5f * a[3*i + 1] * dt;
-    p[3*i + 1] += v[3*i + 1] * dt;
-    v[3*i + 2] += 0.5f * a[3*i + 2] * dt;
-    p[3*i + 2] += v[3*i + 2] * dt;
-  }
-}
-
-static inline void performNBodyHalfStepB(uint64_t n, float dt,
-                                        const float* p,
-                                        float* v,
-                                        const float* a,
-                                        const float* m)
-{
-  for (uint64_t i = 0; i < n; ++i) {
-    //kick
-    v[3*i + 0] += 0.5f * a[3*i + 0] * dt;
-    v[3*i + 1] += 0.5f * a[3*i + 1] * dt;
-    v[3*i + 2] += 0.5f * a[3*i + 2] * dt;
-  }
-}
-
-
 // copyright NVIDIA
 void SequentialAPUpdate(const uint64_t n, float *m, float *p , float *v, const float dt) {
   for (uint64_t i = 0; i < n * 3; i += 3) {
@@ -110,7 +79,7 @@ void SequentialAPUpdate(const uint64_t n, float *m, float *p , float *v, const f
 
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
-void SequentialAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed){
+void SequentialAPSimulateV1(uint64_t n, float dt, float tEnd, uint64_t seed){
   float *m = new float[n];
   float *p = new float[3 * n];
   float *v = new float[3 * n];
@@ -130,7 +99,7 @@ void SequentialAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed){
 }
 
 // Kick-drift-kick //
-void SequentialAPSimulate2(uint64_t n, float dt, float tEnd, uint64_t seed){
+void SequentialAPSimulateV2(uint64_t n, float dt, float tEnd, uint64_t seed){
   float *m = new float[n];
   float *p = new float[3 * n];
   float *v = new float[3 * n];
@@ -161,6 +130,6 @@ int main (int argc, char **argv) {
   }
   srand(0);
   TIMERSTART(simulation)
-  SequentialAPSimulate(std::stoul(argv[1]), 0.01, 0.1, 0);
+  SequentialAPSimulateV1(std::stoul(argv[1]), 0.01, 0.1, 0);
   TIMERSTOP(simulation)
 }
