@@ -4,6 +4,7 @@
 #include "simulations/mpi_ap.h"
 #include "utilities/nbody_helpers.h"
 #include "utilities/integrators.h"
+#include "utilities/time_utils.h"
 
 void MPIAPUpdate(
     int localN,
@@ -233,7 +234,9 @@ int main(int argc, char **argv) {
   }
   int seed = 0;
   srand(seed);
-  SequentialAPSimulate(atoi(argv[1]), 0.01, 10, seed);
+  TIMERSTART(simulation)
+  SequentialAPSimulate(atoi(argv[1]), 0.01, 1, seed);
+  MPI_Barrier(MPI_COMM_WORLD);
+  TIMERSTOP(simulation)
   MPI_Finalize();
-  //mpi_ap(12, 1.0f);
 }
