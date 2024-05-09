@@ -6,13 +6,13 @@
 #include <string>
 #include <vector>
 
-  // Update //
-  void OMPAPUpdate(float dt);
+// Update //
+void OMPAPUpdate(float dt);
 
-  // Simulate laepfrog//
-  void OMPAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed);
+// Simulate laepfrog//
+void OMPAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed);
 
-  // Simulate kick drift kick //
-  void OMPAPSimulate2(uint64_t n, float dt, float tEnd, uint64_t seed);
+// Simulate kick drift kick //
+void OMPAPSimulate2(uint64_t n, float dt, float tEnd, uint64_t seed);
 
 #endif

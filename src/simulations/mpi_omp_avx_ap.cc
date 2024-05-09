@@ -1,24 +1,30 @@
+#include <mpi.h>
+#include <omp.h>
+
 #include <cstring>
 #include <iostream>
-#include <omp.h>
-#include <mpi.h>
+
 #include "utilities/avx.h"
-#include "utilities/time_utils.h"
-#include "utilities/nbody_helpers.h"
 #include "utilities/integrators.h"
+#include "utilities/nbody_helpers.h"
+#include "utilities/time_utils.h"
 
 // copyright NVIDIA
-void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px, float *px_, float *py, float *py_, float *pz, float *pz_, float *vx, float *vx_, float *vy, float *vy_, float *vz, float *vz_, const float dt) {
+void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px,
+                           float *px_, float *py, float *py_, float *pz,
+                           float *pz_, float *vx, float *vx_, float *vy,
+                           float *vy_, float *vz, float *vz_, const float dt) {
   static __m256 DT = _mm256_set1_ps(dt);
   static __m256 s = _mm256_set1_ps(_SOFTENING);
 
-  #pragma omp parallel for schedule(runtime)
+#pragma omp parallel for schedule(runtime)
   for (int i = 0; i < localN; ++i) {
     __m256 Fx = _mm256_set1_ps(0.0f);
     __m256 Fy = _mm256_set1_ps(0.0f);
     __m256 Fz = _mm256_set1_ps(0.0f);
 
-    for (int j = 0; j < n; j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
+    for (int j = 0; j < n;
+         j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
 
       const __m256 Xi = _mm256_broadcast_ss(px_ + i);
       const __m256 Yi = _mm256_broadcast_ss(py_ + i);
@@ -33,12 +39,14 @@ void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px, f
       const __m256 Z = _mm256_sub_ps(Zj, Zi);
 
       __m256 M = _mm256_loadu_ps(m + j);
-      //const __m256 mask =
-      //   _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
-      //M = _mm256_mul_ps(M, mask);
+      // const __m256 mask =
+      //    _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
+      // M = _mm256_mul_ps(M, mask);
 
       const __m256 D = _mm256_fmadd_ps(
-          X, X, _mm256_fmadd_ps(Y, Y, _mm256_fmadd_ps(Z, Z, _mm256_mul_ps(s,s))));
+          X,
+          X,
+          _mm256_fmadd_ps(Y, Y, _mm256_fmadd_ps(Z, Z, _mm256_mul_ps(s, s))));
       const __m256 D_inv = _mm256_rsqrt_ps(D);
       const __m256 D_inv3 = _mm256_mul_ps(
           D_inv,
@@ -74,7 +82,6 @@ void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px, f
     _mm256_store_ps(pz_ + i, Zn);
   }
 }
-
 
 void MPIAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed) {
   int my_rank, nproc;
@@ -162,5 +169,5 @@ int main(int argc, char **argv) {
   MPI_Barrier(MPI_COMM_WORLD);
   TIMERSTOP(simulation)
   MPI_Finalize();
-  //mpi_ap(12, 1.0f);
+  // mpi_ap(12, 1.0f);
 }

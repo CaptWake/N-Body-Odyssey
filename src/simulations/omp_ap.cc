@@ -1,14 +1,17 @@
 #include "simulations/omp_ap.h"
+
 #include <omp.h>
+
 #include <cmath>
-#include "utilities/nbody_helpers.h"
-#include "utilities/time_utils.h"
 #include <iostream>
 
-// copyright NVIDIA
-void OMPAPUpdate(const uint64_t n, float *m, float *p , float *v, const float dt) {
+#include "utilities/nbody_helpers.h"
+#include "utilities/time_utils.h"
 
-  #pragma omp parallel for schedule(runtime)
+// copyright NVIDIA
+void OMPAPUpdate(const uint64_t n, float *m, float *p, float *v,
+                 const float dt) {
+#pragma omp parallel for schedule(runtime)
   for (uint64_t i = 0; i < n * 3; i += 3) {
     float fx = 0.0f;
     float fy = 0.0f;
@@ -21,7 +24,7 @@ void OMPAPUpdate(const uint64_t n, float *m, float *p , float *v, const float dt
       auto dy = p[j + 1] - p[i + 1];
       auto dz = p[j + 2] - p[i + 2];
 
-      auto d = dx * dx + dy * dy + dz * dz + _SOFTENING*_SOFTENING;
+      auto d = dx * dx + dy * dy + dz * dz + _SOFTENING * _SOFTENING;
       auto d_inv = 1.0f / sqrtf(d);
       auto d_inv3 = d_inv * d_inv * d_inv;
 
@@ -43,8 +46,7 @@ void OMPAPUpdate(const uint64_t n, float *m, float *p , float *v, const float dt
 }
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
-void OMPAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed){
-
+void OMPAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed) {
   float *m = new float[n];
   float *p = new float[3 * n];
   float *v = new float[3 * n];
@@ -54,18 +56,20 @@ void OMPAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed){
   InitAos(n, m, p, v, a);
 
   // Simulation Loop
-  for (float t = 0.0f; t < tEnd; t += dt){
+  for (float t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     OMPAPUpdate(n, m, p, v, dt);
     float ek = Ek(n, m, v);
     float ep = Ep(n, m, p);
-    std::cout << "Etot: " <<ek+ep <<std::endl;
+    std::cout << "Etot: " << ek + ep << std::endl;
   }
 }
 
-int main (int argc, char **argv) {
+int main(int argc, char **argv) {
   if (argc < 5) {
-    std::cerr << "Must specify the number of bodies, schedule type, chunk size and number of threads" << std::endl;
+    std::cerr << "Must specify the number of bodies, schedule type, chunk size "
+                 "and number of threads"
+              << std::endl;
     exit(1);
   }
   srand(0);
