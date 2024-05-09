@@ -159,7 +159,7 @@ void RescaleEnergy(uint64_t n, float *m, float *p, float *v){
   scale3NArray(n, v, 1.0f/sqrtf(beta));
 }
 
-void InitAos(const uint64_t n, float *m, float *p, float *v, float *a){
+void InitAos(const uint64_t n, float *m, float *p, float *v, float *a=nullptr){
 
   // Initialize masses equally
   InitMassU(n, m);
@@ -170,8 +170,9 @@ void InitAos(const uint64_t n, float *m, float *p, float *v, float *a){
   // Initialize velocities with uniform distribution
   InitVelU(n, v);
 
-  // Initialize masses equally
-  InitAccU(n, a);
+  if (a != nullptr)
+    // Initialize masses equally
+    InitAccU(n, a);
 
   // Translate bodies to move the center of mass on center of the coordinate system
   Move2Center(n, m, p, v);

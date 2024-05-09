@@ -9,15 +9,14 @@
 
 // copyright NVIDIA
 void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px, float *px_, float *py, float *py_, float *pz, float *pz_, float *vx, float *vx_, float *vy, float *vy_, float *vz, float *vz_, const float dt) {
-  static __m256 DT = _mm256_set_ps(dt, dt, dt, dt, dt, dt, dt, dt);
-  static __m256 s = _mm256_set_ps(
-      _SOFTENING,_SOFTENING,_SOFTENING,_SOFTENING,_SOFTENING,_SOFTENING,_SOFTENING,_SOFTENING);
+  static __m256 DT = _mm256_set1_ps(dt);
+  static __m256 s = _mm256_set1_ps(_SOFTENING);
 
   #pragma omp parallel for schedule(runtime)
   for (int i = 0; i < localN; ++i) {
-    __m256 Fx = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-    __m256 Fy = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-    __m256 Fz = _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+    __m256 Fx = _mm256_set1_ps(0.0f);
+    __m256 Fy = _mm256_set1_ps(0.0f);
+    __m256 Fz = _mm256_set1_ps(0.0f);
 
     for (int j = 0; j < n; j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
 
@@ -52,12 +51,12 @@ void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px, f
     const __m256 Vx = _mm256_mul_ps(Fx, DT);
     const __m256 Vy = _mm256_mul_ps(Fy, DT);
     const __m256 Vz = _mm256_mul_ps(Fz, DT);
-    vx[i] += hsum_avx(Vx);
-    vy[i] += hsum_avx(Vy);
-    vz[i] += hsum_avx(Vz);
+    vx_[i] += hsum_avx(Vx);
+    vy_[i] += hsum_avx(Vy);
+    vz_[i] += hsum_avx(Vz);
   }
 
-  for (int i = 0; i < n; i += 8) {
+  for (int i = 0; i < localN; i += 8) {
     const __m256 X = _mm256_loadu_ps(px_ + i);
     const __m256 Y = _mm256_loadu_ps(py_ + i);
     const __m256 Z = _mm256_loadu_ps(pz_ + i);
@@ -70,75 +69,83 @@ void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px, f
     const __m256 Yn = _mm256_fmadd_ps(Vy, DT, Y);
     const __m256 Zn = _mm256_fmadd_ps(Vz, DT, Z);
 
-    _mm256_store_ps(px + i, Xn);
-    _mm256_store_ps(pz + i, Zn);
-    _mm256_store_ps(py + i, Yn);
+    _mm256_store_ps(px_ + i, Xn);
+    _mm256_store_ps(py_ + i, Yn);
+    _mm256_store_ps(pz_ + i, Zn);
   }
 }
 
 
-void MPIAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed){
+void MPIAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
-
   // we assume that n is a multiple of nproc
   int localN = n / nproc;
 
-  float *m = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
-  float *px = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
-  float *py = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
-  float *pz = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
-  float *vx = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
-  float *vy = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
-  float *vz = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
+  MPI_Datatype block;
+  MPI_Type_vector(6, localN, n, MPI_FLOAT, &block);
+  MPI_Type_commit(&block);
 
-  float *px_ = static_cast<float *>(_mm_malloc(localN * sizeof(float), 32));
-  float *py_ = static_cast<float *>(_mm_malloc(localN * sizeof(float), 32));
-  float *pz_ = static_cast<float *>(_mm_malloc(localN * sizeof(float), 32));
-  float *vx_ = static_cast<float *>(_mm_malloc(localN * sizeof(float), 32));
-  float *vy_ = static_cast<float *>(_mm_malloc(localN * sizeof(float), 32));
-  float *vz_ = static_cast<float *>(_mm_malloc(localN * sizeof(float), 32));
+  float *m = static_cast<float *>(_mm_malloc(n * sizeof(float), 32));
+  float *pv = static_cast<float *>(_mm_malloc(6 * n * sizeof(float), 32));
+  float *pv_ = static_cast<float *>(_mm_malloc(6 * localN * sizeof(float), 32));
 
   if (my_rank == 0)
     // Init Bodies
-    InitSoa(n, m, px, py, pz, vx, vy, vz);
+    InitSoa(n, m, pv, pv + n, pv + 2 * n, pv + 3 * n, pv + 4 * n, pv + 5 * n);
 
-  MPI_Bcast(m, n, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(px, n, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(py, n, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(pz, n, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(vx, n, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(vy, n, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(vz, n, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(m, 3 * n, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(pv, 6 * n, MPI_FLOAT, 0, MPI_COMM_WORLD);
 
   for (int i = 0; i < localN; ++i) {
-    int idx = my_rank*localN+i;
-    px_[i] = px[idx];
-    py_[i] = py[idx];
-    pz_[i] = pz[idx];
-
-    vx_[i] = vx[idx];
-    vy_[i] = vy[idx];
-    vz_[i] = vz[idx];
+    int idx = my_rank * localN + i;
+    pv_[i] = pv[idx];
+    pv_[i + localN] = pv[idx + n];
+    pv_[i + 2 * localN] = pv[idx + 2 * n];
+    pv_[i + 3 * localN] = pv[idx + 3 * n];
+    pv_[i + 4 * localN] = pv[idx + 4 * n];
+    pv_[i + 5 * localN] = pv[idx + 5 * n];
   }
 
   // Simulation Loop
-  for (float t = 0.0f; t < tEnd; t += dt){
+  for (float t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
-    SequentialAPAVXUpdate(n, localN, m, px, px_, py, py_, pz, pz_, vx, vx_, vy, vy_, vz, vz_, dt);
-    MPI_Allgather(px_, localN, MPI_FLOAT, px, localN, MPI_FLOAT, MPI_COMM_WORLD);
-    MPI_Allgather(py_, localN, MPI_FLOAT, py, localN, MPI_FLOAT, MPI_COMM_WORLD);
-    MPI_Allgather(pz_, localN, MPI_FLOAT, pz, localN, MPI_FLOAT, MPI_COMM_WORLD);
-    MPI_Allgather(vx_, localN, MPI_FLOAT, vx, localN, MPI_FLOAT, MPI_COMM_WORLD);
-    MPI_Allgather(vy_, localN, MPI_FLOAT, vy, localN, MPI_FLOAT, MPI_COMM_WORLD);
-    MPI_Allgather(vz_, localN, MPI_FLOAT, vz, localN, MPI_FLOAT, MPI_COMM_WORLD);
+    SequentialAPAVXUpdate(n,
+                          localN,
+                          m,
+                          pv,
+                          pv_,
+                          pv + n,
+                          pv_ + localN,
+                          pv + 2 * n,
+                          pv_ + 2 * localN,
+                          pv + 3 * n,
+                          pv_ + 3 * localN,
+                          pv + 4 * n,
+                          pv_ + 4 * localN,
+                          pv + 5 * n,
+                          pv_ + 5 * localN,
+                          dt);
+
+    if (my_rank == 0) {
+      for (int i = 0; i < 6; i++)
+        memcpy(&pv[i * n], &pv_[i * localN], localN * sizeof(float));
+
+      for (int i = 1; i < nproc; i++)
+        MPI_Recv(
+            &pv[i * localN], 1, block, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    } else {
+      MPI_Send(pv_, 6 * localN, MPI_FLOAT, 0, 0, MPI_COMM_WORLD);
+    }
+    MPI_Bcast(pv, 6 * n, MPI_FLOAT, 0, MPI_COMM_WORLD);
   }
   if (my_rank == 0) {
-    float ek = EkSoa(n, m, vx, vy, vz);
-    float ep = EpSoa(n, m, px, py, pz);
+    float ek = EkSoa(n, m, pv + 3 * n, pv + 4 * n, pv + 5 * n);
+    float ep = EpSoa(n, m, pv, pv + n, pv + 2 * n);
     std::cout << "Etot: " << ek + ep << std::endl;
   }
+  MPI_Type_free(&block);  // Free the datatype when done
 }
 
 int main(int argc, char **argv) {
@@ -151,7 +158,8 @@ int main(int argc, char **argv) {
   SetScheduleType(argv[2], atoi(argv[3]));
   SetNumThread(atoi(argv[4]));
   TIMERSTART(simulation)
-  MPIAPSimulate(std::stoul(argv[1]), 0.01, 0.1, 0);
+  MPIAPSimulate(std::stoul(argv[1]), 0.01, 1, 0);
+  MPI_Barrier(MPI_COMM_WORLD);
   TIMERSTOP(simulation)
   MPI_Finalize();
   //mpi_ap(12, 1.0f);
