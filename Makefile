@@ -1,45 +1,53 @@
-# Makefile for SCPD_Project
+# Define directories
 
-# Variables
-PROJECT_BUILD_DIR := cmake-build
-TARGET := SCPD_Project
-MAKE_PROGRAM := $(shell which ninja)
-BENCHMARK_BIN_DIR := benchmark/bin
+INCLUDE_DIR = include/
+SRC_DIR = src/simulations/
 
-# Default target
-all: release debug genJson suiteTest
+# Define C++ compiler and flags
+CXX = g++
+MPIPPC = mpic++
+CXXFLAGS = -Wall -O3 -std=c++17
+AVX_FLAGS = -march=native
+OPENMP_FLAGS = -fopenmp
 
-# Release target
-release:
-	$(MAKE) build BUILD_TYPE=Release
+# Define object files pattern
+OBJECTS = $(SRC_DIR)%.o
 
-# Debug target
-debug:
-	$(MAKE) build BUILD_TYPE=Debug
+# Define all available executables
+ALL_EXECUTABLES = nbody_sequential_ap nbody_sequential_ap_avx nbody_omp_ap nbody_sequential_bh nbody_sequential_bh_avx nbody_omp_bh
 
-# Build rule
-build:
-	mkdir -p $(PROJECT_BUILD_DIR)/$(BUILD_TYPE) && \
-	cmake -S . -B $(PROJECT_BUILD_DIR)/$(BUILD_TYPE) \
-		-DCMAKE_BUILD_TYPE=$(BUILD_TYPE) \
-		-DCMAKE_MAKE_PROGRAM=$(MAKE_PROGRAM) \
-		-G Ninja && \
-	cmake --build $(PROJECT_BUILD_DIR)/$(BUILD_TYPE) --target $(TARGET) -j 10
+.PHONY: all clean
 
-# Generate JSON rule
-genJson: $(BENCHMARK_BIN_DIR)/genJson
-$(BENCHMARK_BIN_DIR)/genJson: benchmark/src/genJson.cc
-	mkdir -p $(BENCHMARK_BIN_DIR)
-	g++ -o $@ $<
+all: $(ALL_EXECUTABLES)
 
-# Suite test rule
-suiteTest: $(BENCHMARK_BIN_DIR)/suiteTest
-$(BENCHMARK_BIN_DIR)/suiteTest: benchmark/src/suiteTest.cc
-	mkdir -p $(BENCHMARK_BIN_DIR)
-	g++ -o $@ $<
+nbody_sequential_ap: $(SRC_DIR)sequential_ap.cc
+	$(CXX) $(CXXFLAGS) $(SRC_DIR)sequential_ap.cc -I$(INCLUDE_DIR) -o $@
 
-# Clean rule
+nbody_sequential_ap_avx: $(SRC_DIR)sequential_ap_avx.cc
+	$(CXX) $(CXXFLAGS) $(AVX_FLAGS) $(SRC_DIR)sequential_ap_avx.cc -I$(INCLUDE_DIR) -o $@
+
+nbody_omp_ap: $(SRC_DIR)omp_ap.cc
+	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_ap.cc -I$(INCLUDE_DIR) -o $@ -DOMP
+
+nbody_mpi_ap: $(SRC_DIR)mpi_ap.cc
+	$(MPIPPC) $(CXXFLAGS) $(SRC_DIR)mpi_ap.cc -I$(INCLUDE_DIR) -o $@
+
+nbody_sequential_bh: $(SRC_DIR)sequential_bh.cc
+	$(CXX) $(CXXFLAGS) $(SRC_DIR)sequential_bh.cc -I$(INCLUDE_DIR) -o $@
+
+nbody_sequential_bh_avx: $(SRC_DIR)sequential_bh_avx.cc
+	$(CXX) $(CXXFLAGS) $(AVX_FLAGS) $(SRC_DIR)sequential_bh_avx.cc -I$(INCLUDE_DIR) -o $@
+
+nbody_omp_bh: $(SRC_DIR)omp_bh.cc
+	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_bh.cc -I$(INCLUDE_DIR) -o $@ -DOMP
+
+nbody_mpi_omp_avx_ap: $(SRC_DIR)mpi_omp_avx_ap.cc
+	$(MPIPPC) $(CXXFLAGS) $(OPENMP_FLAGS) $(AVX_FLAGS) -DOMP $(SRC_DIR)mpi_omp_avx_ap.cc -I$(INCLUDE_DIR) -o $@
+
+# Generic object file compilation rule
+$(OBJECTS): $(SRC_DIR)%.cc
+	$(CXX) $(CXXFLAGS) $< -I$(INCLUDE_DIR) -o $@
+
 clean:
-	rm -rf $(PROJECT_BUILD_DIR) $(BENCHMARK_BIN_DIR)
+	rm -f $(ALL_EXECUTABLES) $(OBJECTS)
 
-.PHONY: all release debug genJson suiteTest build clean
