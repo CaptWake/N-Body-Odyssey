@@ -73,7 +73,7 @@ nbody_omp_bh: $(SRC_DIR)omp_bh.cc
 nbody_mpi_omp_avx_ap: $(SRC_DIR)mpi_omp_avx_ap.cc
 	$(MPIPPC) $(CXXFLAGS) $(OPENMP_FLAGS) $(AVX_FLAGS) -DOMP $(SRC_DIR)mpi_omp_avx_ap.cc $(INCLUDE_DIR) -o $@
 
-nbody_hip_ap: $(SRC_DIR)ap.hip
+nbody_hip_ap: $(SRC_DIR)ap_soa.hip
 	$(HIPCXX) $(ICXXFLAGS) $(ICPPFLAGS) $(ILDFLAGS) $(INCLUDE_DIR) -o $@ $< $(ILDLIBS)
 
 # Generic object file compilation rule
