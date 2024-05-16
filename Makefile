@@ -14,7 +14,7 @@ OPENMP_FLAGS = -fopenmp
 OBJECTS = $(SRC_DIR)%.o
 
 # GPU settings
-GPU_RUNTIME := HIP
+GPU_RUNTIME := CUDA
 
 # HIP variables
 ROCM_INSTALL_DIR := /opt/rocm

@@ -120,7 +120,7 @@ __global__ void ComputeInteractions(const int n, float4 *p, float4 *v, const flo
   float fz = 0.0f;
   auto i = hipBlockDim_x * hipBlockIdx_x + hipThreadIdx_x;
   #pragma unroll
-  for (int j = 0; j < n; j+=1) {
+  for (int j = 0; j < n; ++j) {
       // compute distance pair
       auto dx = p[j].x - p[i].x;
       auto dy = p[j].y - p[i].y;
