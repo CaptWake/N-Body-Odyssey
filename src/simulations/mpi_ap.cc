@@ -109,8 +109,9 @@ void MPIAPUpdate(int localN, int n, const float *__restrict__ m,
   }
 }
 
-
-static inline void performNBodyStep(const int localN, float* m, float* p, float* v, MPI_Request* requests, const float dt) {
+static inline void performNBodyStep(const int localN, float *m, float *p,
+                                    float *v, MPI_Request *requests,
+                                    const float dt) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -236,25 +237,58 @@ void MPIAPSimulateV2(int n, float dt, float tEnd) {
     // Init Bodies
     InitAos(n, m, p, v);
 
-  MPI_Request* requests = (MPI_Request*)malloc(nproc * sizeof(MPI_Request));
+  MPI_Request *requests = (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
 
   MPI_Bcast(m, n, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Scatter(p, localN * 3, MPI_FLOAT, p + my_rank * localN * 3, localN * 3, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Scatter(v, localN * 3, MPI_FLOAT, v + my_rank * localN * 3, localN * 3, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  MPI_Scatter(p,
+              localN * 3,
+              MPI_FLOAT,
+              p + my_rank * localN * 3,
+              localN * 3,
+              MPI_FLOAT,
+              0,
+              MPI_COMM_WORLD);
+  MPI_Scatter(v,
+              localN * 3,
+              MPI_FLOAT,
+              v + my_rank * localN * 3,
+              localN * 3,
+              MPI_FLOAT,
+              0,
+              MPI_COMM_WORLD);
 
   int it = 0;
   // Simulation Loop
   for (float t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
-    for(int i = 0; i < nproc; ++i) {
-      MPI_Isend(p + my_rank  * localN * 3, localN * 3, MPI_FLOAT, i, it, MPI_COMM_WORLD, &requests[i]);
-      MPI_Irecv(p + i * localN * 3, localN * 3, MPI_FLOAT, i, it, MPI_COMM_WORLD, &requests[i]);
+    for (int i = 0; i < nproc; ++i) {
+      MPI_Isend(p + my_rank * localN * 3,
+                localN * 3,
+                MPI_FLOAT,
+                i,
+                it,
+                MPI_COMM_WORLD,
+                &requests[i]);
+      MPI_Irecv(p + i * localN * 3,
+                localN * 3,
+                MPI_FLOAT,
+                i,
+                it,
+                MPI_COMM_WORLD,
+                &requests[i]);
     }
     performNBodyStep(localN, m, p, v, requests, dt);
     ++it;
   }
 
-  MPI_Gather(v + my_rank * localN * 3, localN * 3, MPI_FLOAT, v, 3 * localN, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  MPI_Gather(v + my_rank * localN * 3,
+             localN * 3,
+             MPI_FLOAT,
+             v,
+             3 * localN,
+             MPI_FLOAT,
+             0,
+             MPI_COMM_WORLD);
 
   if (my_rank == 0) {
     float Epot = Ep(n, m, p);
@@ -269,7 +303,6 @@ void MPIAPSimulateV2(int n, float dt, float tEnd) {
   delete[] p;
   delete[] v;
 }
-
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
 void MPIAPSimulateV3(int n, float dt, float tEnd) {
