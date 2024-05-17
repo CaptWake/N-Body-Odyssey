@@ -109,7 +109,50 @@ void MPIAPUpdate(int localN, int n, const float *__restrict__ m,
   }
 }
 
-void MPIAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed) {
+
+static inline void performNBodyStep(const int localN, float* m, float* p, float* v, MPI_Request* requests, const float dt) {
+  int my_rank, nproc;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+
+  int index;
+  MPI_Status status;
+  for (int n = 0; n < nproc; ++n) {
+    MPI_Waitany(nproc, requests, &index, &status);
+    int k = status.MPI_SOURCE;
+    for (int i = my_rank * localN * 3; i < (my_rank + 1) * localN * 3; i += 3) {
+      float fx = 0.0f;
+      float fy = 0.0f;
+      float fz = 0.0f;
+      for (int j = k * localN * 3; j < (k + 1) * localN * 3; j += 3) {
+        auto m2_id = j / 3;
+        // compute distance pair
+        auto dx = p[j] - p[i];
+        auto dy = p[j + 1] - p[i + 1];
+        auto dz = p[j + 2] - p[i + 2];
+
+        auto d = dx * dx + dy * dy + dz * dz + _SOFTENING * _SOFTENING;
+        auto d_inv = 1.0f / sqrtf(d);
+        auto d_inv3 = d_inv * d_inv * d_inv;
+
+        fx += d_inv3 * m[m2_id] * dx;
+        fy += d_inv3 * m[m2_id] * dy;
+        fz += d_inv3 * m[m2_id] * dz;
+      }
+
+      v[i] += fx * dt;
+      v[i + 1] += fy * dt;
+      v[i + 2] += fz * dt;
+    }
+  }
+  for (int i = my_rank * localN * 3; i < (my_rank + 1) * localN * 3; i += 3) {
+    p[i] += v[i] * dt;
+    p[i + 1] += v[i + 1] * dt;
+    p[i + 2] += v[i + 2] * dt;
+  }
+}
+
+void MPIAPSimulate(uint64_t n, float dt, float tEnd) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -178,7 +221,58 @@ void MPIAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed) {
 }
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
-void SequentialAPSimulate(int n, float dt, float tEnd, uint64_t seed) {
+void MPIAPSimulateV2(int n, float dt, float tEnd) {
+  int my_rank, nproc;
+  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &nproc);
+
+  // we assume that n is a multiple of nproc
+  int localN = n / nproc;
+  float *m = new float[n];
+  float *p = new float[3 * n];
+  float *v = new float[3 * n];
+
+  if (my_rank == 0)
+    // Init Bodies
+    InitAos(n, m, p, v);
+
+  MPI_Request* requests = (MPI_Request*)malloc(nproc * sizeof(MPI_Request));
+
+  MPI_Bcast(m, n, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  MPI_Scatter(p, localN * 3, MPI_FLOAT, p + my_rank * localN * 3, localN * 3, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  MPI_Scatter(v, localN * 3, MPI_FLOAT, v + my_rank * localN * 3, localN * 3, MPI_FLOAT, 0, MPI_COMM_WORLD);
+
+  int it = 0;
+  // Simulation Loop
+  for (float t = 0.0f; t < tEnd; t += dt) {
+    // Update Bodies
+    for(int i = 0; i < nproc; ++i) {
+      MPI_Isend(p + my_rank  * localN * 3, localN * 3, MPI_FLOAT, i, it, MPI_COMM_WORLD, &requests[i]);
+      MPI_Irecv(p + i * localN * 3, localN * 3, MPI_FLOAT, i, it, MPI_COMM_WORLD, &requests[i]);
+    }
+    performNBodyStep(localN, m, p, v, requests, dt);
+    ++it;
+  }
+
+  MPI_Gather(v + my_rank * localN * 3, localN * 3, MPI_FLOAT, v, 3 * localN, MPI_FLOAT, 0, MPI_COMM_WORLD);
+
+  if (my_rank == 0) {
+    float Epot = Ep(n, m, p);
+    float Ekin = Ek(n, m, v);
+    float E0 = Epot + Ekin;
+
+    fprintf(stderr, "Ekin: %.15g\nEpot: %.15g\n", Ekin, Epot);
+    fprintf(stderr, "Eend: %.15g\n", E0);
+  }
+
+  delete[] m;
+  delete[] p;
+  delete[] v;
+}
+
+
+// Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
+void MPIAPSimulateV3(int n, float dt, float tEnd) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -248,7 +342,7 @@ int main(int argc, char **argv) {
   int seed = 0;
   srand(seed);
   TIMERSTART(simulation)
-  SequentialAPSimulate(atoi(argv[1]), 0.01, 1, seed);
+  MPIAPSimulateV2(atoi(argv[1]), 0.01, 1);
   MPI_Barrier(MPI_COMM_WORLD);
   TIMERSTOP(simulation)
   MPI_Finalize();
