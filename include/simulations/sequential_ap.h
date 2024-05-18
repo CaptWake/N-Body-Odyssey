@@ -6,12 +6,15 @@
 #include <random>
 
 // Update //
-void SequentialAPUpdate(float dt);
+template<typename T>
+void SequentialAPUpdate(T dt);
 
 // Simulate laepfrog//
-void SequentialAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed);
+template<typename T>
+void SequentialAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed);
 
 // Simulate kick drift kick //
-void SequentialAPSimulate2(uint64_t n, float dt, float tEnd, uint64_t seed);
+template<typename T>
+void SequentialAPSimulate2(uint64_t n, T dt, T tEnd, uint64_t seed);
 
 #endif
