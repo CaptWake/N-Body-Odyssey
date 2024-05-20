@@ -11,7 +11,7 @@ void SequentialAPAVXUpdate(double dt);
 #endif
 
 // Simulate laepfrog//
-template<typename T>
+template <typename T>
 void SequentialAPAVXSimulate(uint64_t n, T dt, T tEnd, uint64_t seed);
 
 #endif

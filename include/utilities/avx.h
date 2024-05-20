@@ -45,13 +45,13 @@ inline double hsum_avx(__m256d x) {
 }
 #endif
 
-__m256d fastinv(__m256d y)
-{
+__m256d fastinv(__m256d y) {
   // exact results for powers of two
   __m256i const magic = _mm256_set1_epi64x(0x7fe0'0000'0000'0000);
   // Bit-magic: For powers of two this just inverts the exponent,
   // and values between that are linearly interpolated
-  __m256d x = _mm256_castsi256_pd(_mm256_sub_epi64(magic,_mm256_castpd_si256(y)));
+  __m256d x =
+      _mm256_castsi256_pd(_mm256_sub_epi64(magic, _mm256_castpd_si256(y)));
 
   // Newton-Raphson refinement: x = x*(2.0 - x*y):
   x = _mm256_mul_pd(x, _mm256_fnmadd_pd(x, y, _mm256_set1_pd(2.0)));

@@ -17,10 +17,10 @@
 #define MY_T float
 #endif
 
-template<typename T>
+template <typename T>
 void MPIAPUpdate(int localN, int n, const T *__restrict__ m,
-                 const T *__restrict__ p, T *a,
-                 T *__restrict__ m_rec, T *__restrict__ p_rec) {
+                 const T *__restrict__ p, T *a, T *__restrict__ m_rec,
+                 T *__restrict__ p_rec) {
   T *__restrict__ ai;
   T px, py, pz;
   long i, j;
@@ -118,10 +118,9 @@ void MPIAPUpdate(int localN, int n, const T *__restrict__ m,
   }
 }
 
-template<typename T>
-static inline void performNBodyStep(const int localN, T *m, T *p,
-                                    T *v, MPI_Request *requests,
-                                    const T dt) {
+template <typename T>
+static inline void performNBodyStep(const int localN, T *m, T *p, T *v,
+                                    MPI_Request *requests, const T dt) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -163,7 +162,7 @@ static inline void performNBodyStep(const int localN, T *m, T *p,
   }
 }
 
-template<typename T>
+template <typename T>
 void MPIAPSimulate(uint64_t n, T dt, T tEnd) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -233,7 +232,7 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd) {
 }
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
-template<typename T>
+template <typename T>
 void MPIAPSimulateV2(int n, T dt, T tEnd) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -317,7 +316,7 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
 }
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
-template<typename T>
+template <typename T>
 void MPIAPSimulateV3(int n, T dt, T tEnd) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);

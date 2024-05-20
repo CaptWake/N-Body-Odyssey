@@ -7,10 +7,8 @@
 #include "utilities/nbody_helpers.h"
 #include "utilities/time_utils.h"
 
-
-template<typename T>
-void computeForce(uint64_t n, uint64_t i, const T *m, const T *p,
-                  T *a) {
+template <typename T>
+void computeForce(uint64_t n, uint64_t i, const T *m, const T *p, T *a) {
   //         a[k] = -p[k] / (r2*sqrtr2);
   T *ai = a + 3 * i;
   ai[0] = 0.0f;
@@ -47,9 +45,8 @@ void computeForce(uint64_t n, uint64_t i, const T *m, const T *p,
 }
 
 // copyright NVIDIA
-template<typename T>
-void SequentialAPUpdate(const uint64_t n, T *m, T *p, T *v,
-                        const T dt) {
+template <typename T>
+void SequentialAPUpdate(const uint64_t n, T *m, T *p, T *v, const T dt) {
   for (uint64_t i = 0; i < n * 3; i += 3) {
     T fx = 0.0f;
     T fy = 0.0f;
@@ -84,7 +81,7 @@ void SequentialAPUpdate(const uint64_t n, T *m, T *p, T *v,
 }
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
-template<typename T>
+template <typename T>
 void SequentialAPSimulateV1(uint64_t n, T dt, T tEnd, uint64_t seed) {
   T *m = new T[n];
   T *p = new T[3 * n];
@@ -99,13 +96,13 @@ void SequentialAPSimulateV1(uint64_t n, T dt, T tEnd, uint64_t seed) {
     // Update Bodies
     SequentialAPUpdate<T>(n, m, p, v, dt);
   }
-  //T ek = Ek<T>(n, m, v);
-  //T ep = Ep<T>(n, m, p);
-  //std::cout << "Etot: " << ek + ep << std::endl;
+  // T ek = Ek<T>(n, m, v);
+  // T ep = Ep<T>(n, m, p);
+  // std::cout << "Etot: " << ek + ep << std::endl;
 }
 
 // Kick-drift-kick //
-template<typename T>
+template <typename T>
 void SequentialAPSimulateV2(uint64_t n, T dt, T tEnd, uint64_t seed) {
   T *m = new T[n];
   T *p = new T[3 * n];

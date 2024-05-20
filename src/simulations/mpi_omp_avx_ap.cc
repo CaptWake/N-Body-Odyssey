@@ -17,7 +17,6 @@
 #define MY_T float
 #endif
 
-
 #ifdef FLOAT
 // copyright NVIDIA
 void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px,
@@ -99,7 +98,8 @@ void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px,
 void SequentialAPAVXUpdate(const int n, const int localN, double *m, double *px,
                            double *px_, double *py, double *py_, double *pz,
                            double *pz_, double *vx, double *vx_, double *vy,
-                           double *vy_, double *vz, double *vz_, const double dt) {
+                           double *vy_, double *vz, double *vz_,
+                           const double dt) {
   static __m256d DT = _mm256_set1_pd(dt);
   static __m256d s = _mm256_set1_pd(_SOFTENING);
 
@@ -170,9 +170,8 @@ void SequentialAPAVXUpdate(const int n, const int localN, double *m, double *px,
   }
 }
 
-
 #endif
-template<typename T>
+template <typename T>
 void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -188,10 +187,10 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
   T *pv = static_cast<T *>(_mm_malloc(6 * n * sizeof(T), 32));
   T *pv_ = static_cast<T *>(_mm_malloc(6 * localN * sizeof(T), 32));
 
-
   if (my_rank == 0)
     // Init Bodies
-    InitSoa<T>(n, m, pv, pv + n, pv + 2 * n, pv + 3 * n, pv + 4 * n, pv + 5 * n);
+    InitSoa<T>(
+        n, m, pv, pv + n, pv + 2 * n, pv + 3 * n, pv + 4 * n, pv + 5 * n);
 
   MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Bcast(pv, 6 * n, MPI_TYPE, 0, MPI_COMM_WORLD);

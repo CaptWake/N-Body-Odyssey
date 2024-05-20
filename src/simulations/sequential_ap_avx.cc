@@ -153,9 +153,9 @@ void SequentialAPAVXUpdate(const uint64_t n, double *m, double *px, double *py,
 }
 #endif
 
-template<typename T>
+template <typename T>
 void SequentialAPAVXSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
-  T *m  = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
+  T *m = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
   T *px = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
   T *py = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
   T *pz = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));

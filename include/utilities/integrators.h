@@ -2,10 +2,9 @@
 #define INTEGRATORS_H_
 #include "utilities/nbody_helpers.h"
 
-template<typename T>
-static inline void performNBodyHalfStepA(uint64_t n, T dt, T* p,
-                                         T* v, const T* a,
-                                         const T* m) {
+template <typename T>
+static inline void performNBodyHalfStepA(uint64_t n, T dt, T* p, T* v,
+                                         const T* a, const T* m) {
   for (uint64_t i = 0; i < n; ++i) {
     // kick, drift
     v[3 * i + 0] += 0.5 * a[3 * i + 0] * dt;
@@ -17,10 +16,9 @@ static inline void performNBodyHalfStepA(uint64_t n, T dt, T* p,
   }
 }
 
-template<typename T>
-static inline void performNBodyHalfStepB(uint64_t n, T dt, const T* p,
-                                         T* v, const T* a,
-                                         const T* m) {
+template <typename T>
+static inline void performNBodyHalfStepB(uint64_t n, T dt, const T* p, T* v,
+                                         const T* a, const T* m) {
   for (uint64_t i = 0; i < n; ++i) {
     // kick
     v[3 * i + 0] += 0.5 * a[3 * i + 0] * dt;
@@ -29,10 +27,9 @@ static inline void performNBodyHalfStepB(uint64_t n, T dt, const T* p,
   }
 }
 
-template<typename T>
-static inline void performNBodyStep(const int localN, const int n, T* m,
-                                    T* p, T* p_, T* v, T* v_,
-                                    const T dt) {
+template <typename T>
+static inline void performNBodyStep(const int localN, const int n, T* m, T* p,
+                                    T* p_, T* v, T* v_, const T dt) {
   for (int i = 0; i < localN * 3; i += 3) {
     T fx = 0.0;
     T fy = 0.0;

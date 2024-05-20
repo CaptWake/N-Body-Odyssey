@@ -9,9 +9,8 @@
 #include "utilities/time_utils.h"
 
 // copyright NVIDIA
-template<typename T>
-void OMPAPUpdate(const uint64_t n, T *m, T *p, T *v,
-                 const T dt) {
+template <typename T>
+void OMPAPUpdate(const uint64_t n, T *m, T *p, T *v, const T dt) {
 #pragma omp parallel for schedule(runtime)
   for (uint64_t i = 0; i < n * 3; i += 3) {
     T fx = 0.0f;
@@ -47,7 +46,7 @@ void OMPAPUpdate(const uint64_t n, T *m, T *p, T *v,
 }
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
-template<typename T>
+template <typename T>
 void OMPAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
   T *m = new T[n];
   T *p = new T[3 * n];
