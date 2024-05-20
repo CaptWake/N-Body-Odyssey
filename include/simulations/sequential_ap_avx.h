@@ -4,9 +4,14 @@
 #include <cstdint>
 
 // Update //
+#ifdef FLOAT
 void SequentialAPAVXUpdate(float dt);
+#else
+void SequentialAPAVXUpdate(double dt);
+#endif
 
 // Simulate laepfrog//
-void SequentialAPAVXSimulate(uint64_t n, float dt, float tEnd, uint64_t seed);
+template<typename T>
+void SequentialAPAVXSimulate(uint64_t n, T dt, T tEnd, uint64_t seed);
 
 #endif

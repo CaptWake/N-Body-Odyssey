@@ -9,6 +9,7 @@ MPIPPC = mpic++
 CXXFLAGS = -Wall -O3 -std=c++17
 AVX_FLAGS = -march=native
 OPENMP_FLAGS = -fopenmp
+PRECISION = DOUBLE
 
 # Define object files pattern
 OBJECTS = $(SRC_DIR)%.o
@@ -50,16 +51,16 @@ ALL_EXECUTABLES = nbody_sequential_ap nbody_sequential_ap_avx nbody_omp_ap nbody
 all: $(ALL_EXECUTABLES)
 
 nbody_sequential_ap: $(SRC_DIR)sequential_ap.cc
-	$(CXX) $(CXXFLAGS) $(SRC_DIR)sequential_ap.cc $(INCLUDE_DIR) -o $@
+	$(CXX) $(CXXFLAGS) $(SRC_DIR)sequential_ap.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION)
 
 nbody_sequential_ap_avx: $(SRC_DIR)sequential_ap_avx.cc
-	$(CXX) $(CXXFLAGS) $(AVX_FLAGS) $(SRC_DIR)sequential_ap_avx.cc $(INCLUDE_DIR) -o $@
+	$(CXX) $(CXXFLAGS) $(AVX_FLAGS) $(SRC_DIR)sequential_ap_avx.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION)
 
 nbody_omp_ap: $(SRC_DIR)omp_ap.cc
-	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_ap.cc $(INCLUDE_DIR) -o $@ -DOMP
+	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_ap.cc $(INCLUDE_DIR) -o $@ -DOMP -D$(PRECISION)
 
 nbody_mpi_ap: $(SRC_DIR)mpi_ap.cc
-	$(MPIPPC) $(CXXFLAGS) $(SRC_DIR)mpi_ap.cc $(INCLUDE_DIR) -o $@
+	$(MPIPPC) $(CXXFLAGS) $(SRC_DIR)mpi_ap.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION)
 
 nbody_sequential_bh: $(SRC_DIR)sequential_bh.cc
 	$(CXX) $(CXXFLAGS) $(SRC_DIR)sequential_bh.cc $(INCLUDE_DIR) -o $@
@@ -71,10 +72,10 @@ nbody_omp_bh: $(SRC_DIR)omp_bh.cc
 	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_bh.cc $(INCLUDE_DIR) -o $@ -DOMP
 
 nbody_mpi_omp_avx_ap: $(SRC_DIR)mpi_omp_avx_ap.cc
-	$(MPIPPC) $(CXXFLAGS) $(OPENMP_FLAGS) $(AVX_FLAGS) -DOMP $(SRC_DIR)mpi_omp_avx_ap.cc $(INCLUDE_DIR) -o $@
+	$(MPIPPC) $(CXXFLAGS) $(OPENMP_FLAGS) $(AVX_FLAGS) -DOMP $(SRC_DIR)mpi_omp_avx_ap.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION)
 
 nbody_hip_ap: $(SRC_DIR)ap_soa.hip
-	$(HIPCXX) $(ICXXFLAGS) $(ICPPFLAGS) $(ILDFLAGS) $(INCLUDE_DIR) -o $@ $< $(ILDLIBS)
+	$(HIPCXX) $(ICXXFLAGS) $(ICPPFLAGS) $(ILDFLAGS) $(INCLUDE_DIR) -o $@ $< $(ILDLIBS) -D$(PRECISION)
 
 # Generic object file compilation rule
 $(OBJECTS): $(SRC_DIR)%.cc
