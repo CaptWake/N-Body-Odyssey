@@ -98,10 +98,10 @@ void SequentialAPSimulateV1(uint64_t n, T dt, T tEnd, uint64_t seed) {
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     SequentialAPUpdate<T>(n, m, p, v, dt);
-    T ek = Ek<T>(n, m, v);
-    T ep = Ep<T>(n, m, p);
-    std::cout << "Etot: " << ek + ep << std::endl;
   }
+  //T ek = Ek<T>(n, m, v);
+  //T ep = Ep<T>(n, m, p);
+  //std::cout << "Etot: " << ek + ep << std::endl;
 }
 
 // Kick-drift-kick //
@@ -123,11 +123,11 @@ void SequentialAPSimulateV2(uint64_t n, T dt, T tEnd, uint64_t seed) {
       computeForce<T>(n, i, m, p, a);
     }
     performNBodyHalfStepB<T>(n, dt, p, v, a, m);
-    T ek = Ek<T>(n, m, v);
-    T ep = Ep<T>(n, m, p);
-    std::cout << "iteration: " << j << " Etot: " << ek + ep << std::endl;
     j++;
   }
+  T ek = Ek<T>(n, m, v);
+  T ep = Ep<T>(n, m, p);
+  std::cout << "iteration: " << j << " Etot: " << ek + ep << std::endl;
 }
 
 int main(int argc, char **argv) {
@@ -137,6 +137,6 @@ int main(int argc, char **argv) {
   }
   srand(0);
   TIMERSTART(simulation)
-  SequentialAPSimulateV1<MY_T>(std::stoul(argv[1]), 0.01, 0.1, 0);
+  SequentialAPSimulateV1<MY_T>(std::stoul(argv[1]), 0.01, 1, 0);
   TIMERSTOP(simulation)
 }
