@@ -17,6 +17,11 @@
 #define MY_T float
 #endif
 
+TIMERINIT(broadcast)
+TIMERINIT(simulation)
+TIMERINIT(send)
+TIMERINIT(receive)
+
 #ifdef FLOAT
 // copyright NVIDIA
 void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px,
@@ -192,8 +197,10 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
     InitSoa<T>(
         n, m, pv, pv + n, pv + 2 * n, pv + 3 * n, pv + 4 * n, pv + 5 * n);
 
+  TIMERSTART(broadcast)
   MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Bcast(pv, 6 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
+  TIMERSTOP(broadcast)
 
   for (int i = 0; i < localN; ++i) {
     int idx = my_rank * localN + i;
@@ -205,7 +212,8 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
     pv_[i + 5 * localN] = pv[idx + 5 * n];
   }
 
-  // Simulation Loopp
+  TIMERSTART(simulation)
+  // Simulation Loop
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     SequentialAPAVXUpdate(n,
@@ -229,14 +237,29 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
       for (int i = 0; i < 6; i++)
         memcpy(&pv[i * n], &pv_[i * localN], localN * sizeof(T));
 
-      for (int i = 1; i < nproc; i++)
+      for (int i = 1; i < nproc; i++) {
+        TIMERSTART(receive)
         MPI_Recv(
             &pv[i * localN], 1, block, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        TIMERSTOP(receive)
+      }
     } else {
-      MPI_Send(pv_, 6 * localN, MPI_TYPE, 0, 0, MPI_COMM_WORLD);
+        TIMERSTART(send)
+        MPI_Send(pv_, 6 * localN, MPI_TYPE, 0, 0, MPI_COMM_WORLD);
+        TIMERSTOP(send)
     }
+    TIMERSTART(broadcast)
     MPI_Bcast(pv, 6 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
+    TIMERSTOP(broadcast)
   }
+  TIMERSTOP(simulation)
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  TIMERPRINT(broadcast)
+  TIMERPRINT(simulation)
+  TIMERPRINT(send)
+  TIMERPRINT(receive)
+
   if (my_rank == 0) {
     T ek = EkSoa<T>(n, m, pv + 3 * n, pv + 4 * n, pv + 5 * n);
     T ep = EpSoa<T>(n, m, pv, pv + n, pv + 2 * n);
@@ -247,17 +270,15 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
 
 int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
-  if (argc < 2) {
-    std::cerr << "Must specify the number of bodies" << std::endl;
+  if (argc < 4) {
+    std::cerr << "Must specify the number of bodies, " << std::endl;
     exit(1);
   }
   srand(0);
   SetScheduleType(argv[2], atoi(argv[3]));
   SetNumThread(atoi(argv[4]));
-  TIMERSTART(simulation)
   MPIAPSimulate<MY_T>(std::stoul(argv[1]), 0.01, 1, 0);
   MPI_Barrier(MPI_COMM_WORLD);
-  TIMERSTOP(simulation)
   MPI_Finalize();
   // mpi_ap(12, 1.0f);
 }

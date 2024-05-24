@@ -17,6 +17,13 @@
 #define MY_T float
 #endif
 
+TIMERINIT(scatter)
+TIMERINIT(broadcast)
+TIMERINIT(gather)
+TIMERINIT(allgather)
+TIMERINIT(simulation)
+TIMERINIT(waitany)
+
 template <typename T>
 void MPIAPUpdate(int localN, int n, const T *__restrict__ m,
                  const T *__restrict__ p, T *a, T *__restrict__ m_rec,
@@ -128,6 +135,7 @@ static inline void performNBodyStep(const int localN, T *m, T *p, T *v,
   int index;
   MPI_Status status;
   for (int n = 0; n < nproc; ++n) {
+    TIMERSTART(waitany)
     MPI_Waitany(nproc, requests, &index, &status);
     int k = status.MPI_SOURCE;
     for (int i = my_rank * localN * 3; i < (my_rank + 1) * localN * 3; i += 3) {
@@ -188,6 +196,7 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd) {
     InitAos<T>(n, mm, pp, vv, aa);
   }
 
+  TIMERSTART(scatter)
   MPI_Scatter(
       pp, localN * 3, MPI_TYPE, p, localN * 3, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Scatter(
@@ -195,19 +204,30 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd) {
   MPI_Scatter(
       aa, localN * 3, MPI_TYPE, a, localN * 3, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Scatter(mm, localN, MPI_TYPE, m, localN, MPI_TYPE, 0, MPI_COMM_WORLD);
+  TIMERSTOP(scatter)
 
   // Simulation Loop
+  TIMERSTART(simulation)
   for (T t = 0.0f; t < tEnd; t += dt) {
     performNBodyHalfStepA<T>(localN, dt, p, v, a, m);
     // Update Bodies
     MPIAPUpdate<T>(localN, n, m, p, a, m_rec, p_rec);
     performNBodyHalfStepB<T>(localN, dt, p, v, a, m);
   }
+  TIMERSTOP(simulation)
 
+  TIMERSTART(gather)
   MPI_Gather(
       p, localN * 3, MPI_TYPE, pp, localN * 3, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Gather(
       v, localN * 3, MPI_TYPE, vv, localN * 3, MPI_TYPE, 0, MPI_COMM_WORLD);
+  TIMERSTOP(gather)
+
+  TIMERPRINT(scatter)
+  TIMERPRINT(gather)
+  TIMERPRINT(simulation)
+
+  MPI_Barrier(MPI_COMM_WORLD);
 
   if (my_rank == 0) {
     T Epot = Ep<T>(n, mm, pp);
@@ -250,7 +270,11 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
 
   MPI_Request *requests = (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
 
+  TIMERSTART(broadcast)
   MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
+  TIMERSTOP(broadcast)
+
+  TIMERSTART(scatter)
   MPI_Scatter(p,
               localN * 3,
               MPI_TYPE,
@@ -267,8 +291,10 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
               MPI_TYPE,
               0,
               MPI_COMM_WORLD);
+  TIMERSTOP(scatter)
 
   int it = 0;
+  TIMERSTART(simulation)
   // Simulation Loop
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
@@ -291,7 +317,9 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
     performNBodyStep<T>(localN, m, p, v, requests, dt);
     ++it;
   }
+  TIMERSTOP(simulation)
 
+  TIMERSTART(gather)
   MPI_Gather(v + my_rank * localN * 3,
              localN * 3,
              MPI_TYPE,
@@ -300,11 +328,19 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
              MPI_TYPE,
              0,
              MPI_COMM_WORLD);
+  TIMERSTOP(gather)
 
+  TIMERPRINT(broadcast)
+  TIMERPRINT(scatter)
+  TIMERPRINT(simulation)
+  TIMERPRINT(gather)
+  TIMERPRINT(waitany)
+
+  MPI_Barrier(MPI_COMM_WORLD);
   if (my_rank == 0) {
-    float Epot = Ep<T>(n, m, p);
-    float Ekin = Ek<T>(n, m, v);
-    float E0 = Epot + Ekin;
+    T Epot = Ep<T>(n, m, p);
+    T Ekin = Ek<T>(n, m, v);
+    T E0 = Epot + Ekin;
 
     fprintf(stderr, "Ekin: %.15g\nEpot: %.15g\n", Ekin, Epot);
     fprintf(stderr, "Eend: %.15g\n", E0);
@@ -336,10 +372,12 @@ void MPIAPSimulateV3(int n, T dt, T tEnd) {
     // Init Bodies
     InitAos<T>(n, m, p, v, a);
 
+  TIMERSTART(broadcast)
   MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Bcast(p, 3 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Bcast(v, 3 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Bcast(a, 3 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
+  TIMERSTOP(broadcast)
 
   for (int i = 0; i < localN * 3; i += 3) {
     p_[i] = p[my_rank * localN * 3 + i];
@@ -351,16 +389,26 @@ void MPIAPSimulateV3(int n, T dt, T tEnd) {
     v_[i + 2] = v[my_rank * localN * 3 + i + 2];
   }
 
+  TIMERSTART(simulation)
   // Simulation Loop
   for (float t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     performNBodyStep<T>(localN, n, m, p, p_, v, v_, dt);
+    TIMERSTART(allgather)
     MPI_Allgather(
         p_, 3 * localN, MPI_TYPE, p, 3 * localN, MPI_TYPE, MPI_COMM_WORLD);
     MPI_Allgather(
         v_, 3 * localN, MPI_TYPE, v, 3 * localN, MPI_TYPE, MPI_COMM_WORLD);
-  }
+    TIMERSTOP(allgather)
 
+  }
+  TIMERSTOP(simulation)
+
+  TIMERPRINT(broadcast)
+  TIMERPRINT(simulation)
+  TIMERPRINT(allgather)
+
+  MPI_Barrier(MPI_COMM_WORLD);
   if (my_rank == 0) {
     T Epot = Ep<T>(n, m, p);
     T Ekin = Ek<T>(n, m, v);
@@ -369,7 +417,6 @@ void MPIAPSimulateV3(int n, T dt, T tEnd) {
     fprintf(stderr, "Ekin: %.15g\nEpot: %.15g\n", Ekin, Epot);
     fprintf(stderr, "Eend: %.15g\n", E0);
   }
-
   delete[] m;
   delete[] p;
   delete[] v;
@@ -386,9 +433,7 @@ int main(int argc, char **argv) {
   }
   int seed = 0;
   srand(seed);
-  TIMERSTART(simulation)
   MPIAPSimulateV2<MY_T>(atoi(argv[1]), 0.01, 10);
   MPI_Barrier(MPI_COMM_WORLD);
-  TIMERSTOP(simulation)
   MPI_Finalize();
 }
