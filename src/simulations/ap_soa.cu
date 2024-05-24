@@ -44,7 +44,7 @@ void InitPosVel(const int n, float4 *p, float4 *v) {
     Y = fdrand<float>() * 2.0f * _PI;
     // https://www.researchgate.net/figure/Figure-A1-Spherical-coordinates_fig8_284609648
     p[i] = make_float4(R * sinf(X) * cosf(Y), R * sinf(X) * sinf(Y), R * cosf(X), mi);
-    v[i] = make_float4(1.0f - 2.0f * frand<float>(), 1.0f - 2.0f * frand<float>(), 1.0f - 2.0f * frand<float>(), mi);
+    v[i] = make_float4(1.0f - 2.0f * fdrand<float>(), 1.0f - 2.0f * fdrand<float>(), 1.0f - 2.0f * fdrand<float>(), mi);
   }
 }
 
