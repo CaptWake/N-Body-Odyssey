@@ -190,11 +190,9 @@ int main (int argc, char **argv) {
     hipLaunchKernelGGL(ComputeInteractions /* compute kernel*/, 
                         blocks, threadsPerBlock, 0/*dynamic shared*/, 0/*stream*/, 
                         n, d_p, d_v, dt /* arguments to the compute kernel */);
-    HIP_CHECK(hipDeviceSynchronize())
     hipLaunchKernelGGL(UpdatePosition,
                         blocks, threadsPerBlock, 0/*dynamic shared*/, 0/*stream*/, 
                         d_p, d_v, dt /* arguments to the compute kernel */);
-    HIP_CHECK(hipDeviceSynchronize())
   }
   TIMERSTOP(simulation)
 

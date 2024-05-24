@@ -166,11 +166,14 @@ void SequentialAPAVXSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
   // Init Bodies
   InitSoa<T>(n, m, px, py, pz, vx, vy, vz);
 
+  TIMERSTART(simulation)
   // Simulation Loop
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     SequentialAPAVXUpdate(n, m, px, py, pz, vx, vy, vz, dt);
   }
+  TIMERSTOP(simulation)
+
   float ek = EkSoa<T>(n, m, vx, vy, vz);
   float ep = EpSoa<T>(n, m, px, py, pz);
   std::cout << "Etot: " << ek + ep << std::endl;
@@ -181,8 +184,6 @@ int main(int argc, char **argv) {
     std::cerr << "Must specify the number of bodies" << std::endl;
     exit(1);
   }
-  TIMERSTART(simulation)
   srand(0);
   SequentialAPAVXSimulate<MY_T>(std::stoul(argv[1]), 0.01, 1, 0);
-  TIMERSTOP(simulation)
 }

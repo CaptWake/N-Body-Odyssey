@@ -56,14 +56,16 @@ void OMPAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
   // Init Bodies
   InitAos<T>(n, m, p, v, a);
 
+  TIMERSTART(simulation)
   // Simulation Loop
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     OMPAPUpdate<T>(n, m, p, v, dt);
-    T ek = Ek<T>(n, m, v);
-    T ep = Ep<T>(n, m, p);
-    std::cout << "Etot: " << ek + ep << std::endl;
   }
+  TIMERSTOP(simulation)
+  T ek = Ek<T>(n, m, v);
+  T ep = Ep<T>(n, m, p);
+  std::cout << "Etot: " << ek + ep << std::endl;
 }
 
 int main(int argc, char **argv) {
@@ -76,7 +78,6 @@ int main(int argc, char **argv) {
   srand(0);
   SetScheduleType(argv[2], atoi(argv[3]));
   SetNumThread(atoi(argv[4]));
-  TIMERSTART(simulation)
+
   OMPAPSimulate<MY_T>(std::stoul(argv[1]), 0.01, 0.1, 0);
-  TIMERSTOP(simulation)
 }

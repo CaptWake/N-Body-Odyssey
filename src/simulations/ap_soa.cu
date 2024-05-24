@@ -185,9 +185,7 @@ int main (int argc, char **argv) {
   TIMERSTART(simulation)
   for (float t = 0; t < 0.1; t+= dt) {
     ComputeInteractions<<<blocks, threadsPerBlock>>>(n, d_p, d_v, dt );
-    cudaDeviceSynchronize();
     UpdatePosition<<<blocks, threadsPerBlock>>>(d_p, d_v, dt);
-    cudaDeviceSynchronize();
   }
   TIMERSTOP(simulation)
 
