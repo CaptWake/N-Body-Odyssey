@@ -14,55 +14,49 @@
 #endif
 
 #include <stdlib.h>
-
-#include <cstdint>
 #include <random>
 #include <string>
 #ifdef OMP
 #include <omp.h>
 #endif
 
-constexpr float _G = 1;
-constexpr float _M = 1;
-constexpr float _SOFTENING = 0.025f;
+constexpr MY_T _G = 1;
+constexpr MY_T _M = 1;
+constexpr MY_T _SOFTENING = 0.025;
 
 /* pi */
-static const double _PI = 2.0 * asin(1);
+static const MY_T _PI = 2.0 * asin(1);
 
 template <typename T>
-static inline float fdrand() {
+static inline T fdrand() {
   return ((T)rand()) / (T)RAND_MAX;
 }
-
-// Function to export bodies information to CSV file
-
-// void LogsToCSV(const std::string& filename);
 
 // Initialization taken from https://github.com/alexgbrandt/Parallel-NBody/
 
 template <typename T>
-T inline Ep(uint64_t n, T *m, T *p) {
-  T Epot = 0.0f;
+T inline Ep(int n, T *m, T *p) {
+  T Epot = 0.0;
   T D, x, y, z;
-  uint64_t i, j;
+  int i, j;
   for (i = 0; i < n; ++i) {
     for (j = i + 1; j < n; ++j) {
       x = p[3 * i + 0] - p[3 * j + 0];
       y = p[3 * i + 1] - p[3 * j + 1];
       z = p[3 * i + 2] - p[3 * j + 2];
-      D = sqrtf(x * x + y * y + z * z);
-      Epot += -1.0f * m[i] * m[j] / D;
+      D = sqrt(x * x + y * y + z * z);
+      Epot += -1.0 * m[i] * m[j] / D;
     }
   }
   return Epot;
 }
 
 template <typename T>
-T inline Ek(uint64_t n, T *m, T *v) {
+T inline Ek(int n, T *m, T *v) {
   T Ekin = 0.0;
-  uint64_t i;
+  int i;
   for (i = 0; i < n; ++i) {
-    Ekin += 0.5f * m[i] *
+    Ekin += 0.5* m[i] *
             (v[3 * i] * v[3 * i] + v[3 * i + 1] * v[3 * i + 1] +
              v[3 * i + 2] * v[3 * i + 2]);
   }
@@ -70,16 +64,16 @@ T inline Ek(uint64_t n, T *m, T *v) {
 }
 
 template <typename T>
-static inline void scale3NArray(uint64_t n, T *m, T scale) {
-  for (uint64_t i = 0; i < 3 * n; ++i) {
+static inline void scale3NArray(int n, T *m, T scale) {
+  for (int i = 0; i < 3 * n; ++i) {
     m[i] *= scale;
   }
 }
 
 template <typename T>
-void InitMassU(uint64_t n, T *m) {
+void InitMassU(int n, T *m) {
   T mi = _M / n;
-  uint64_t i;
+  int i;
 
   for (i = 0; i < n; ++i) {
     m[i] = mi;
@@ -87,9 +81,9 @@ void InitMassU(uint64_t n, T *m) {
 }
 
 template <typename T>
-void InitPosU(uint64_t n, T *p) {
+void InitPosU(int n, T *p) {
   T R, X, Y;
-  uint64_t i;
+  int i;
   for (i = 0; i < n; ++i) {
     R = fdrand<T>();
     X = acos(1.0 - 2.0 * fdrand<T>());
@@ -103,18 +97,18 @@ void InitPosU(uint64_t n, T *p) {
 }
 
 template <typename T>
-void InitVelU(uint64_t n, T *v) {
-  uint64_t i;
+void InitVelU(int n, T *v) {
+  int i;
   for (i = 0; i < n; ++i) {
-    v[3 * i] = (1.0f - 2.0 * fdrand<T>());
-    v[3 * i + 1] = (1.0f - 2.0 * fdrand<T>());
-    v[3 * i + 2] = (1.0f - 2.0 * fdrand<T>());
+    v[3 * i] = (1.0 - 2.0 * fdrand<T>());
+    v[3 * i + 1] = (1.0 - 2.0 * fdrand<T>());
+    v[3 * i + 2] = (1.0 - 2.0 * fdrand<T>());
   }
 }
 
 template <typename T>
-void InitAccU(uint64_t n, T *a) {
-  uint64_t i;
+void InitAccU(int n, T *a) {
+  int i;
   for (i = 0; i < n; ++i) {
     a[3 * i] = 0.0;
     a[3 * i + 1] = 0.0;
@@ -123,11 +117,11 @@ void InitAccU(uint64_t n, T *a) {
 }
 
 template <typename T>
-void Move2Center(uint64_t n, T *m, T *p, T *v) {
+void Move2Center(int n, T *m, T *p, T *v) {
   T px = 0.0, py = 0.0, pz = 0.0;
   T vx = 0.0, vy = 0.0, vz = 0.0;
   T mi;
-  uint64_t i;
+  int i;
 
   for (i = 0; i < n; ++i) {
     mi = m[i];
@@ -158,7 +152,7 @@ void Move2Center(uint64_t n, T *m, T *p, T *v) {
 }
 
 template <typename T>
-void RescaleEnergy(uint64_t n, T *m, T *p, T *v) {
+void RescaleEnergy(int n, T *m, T *p, T *v) {
   // Aarseth, 2003, Algorithm 7.2.
   T Epot = Ep<T>(n, m, p);
   T Ekin = Ek<T>(n, m, v);
@@ -168,18 +162,18 @@ void RescaleEnergy(uint64_t n, T *m, T *p, T *v) {
   T beta = fabs((1 - virialRatio) * Epot / (Epot + Ekin));
 
   scale3NArray<T>(n, p, beta);
-  scale3NArray<T>(n, v, 1.0f / (sqrt(beta)));
+  scale3NArray<T>(n, v, 1.0 / (sqrt(beta)));
 
   // After first scale Ekin is -0.5Epot but E0 != -0.25.
   // So just scale up or down as needed.
   Epot = Ep<T>(n, m, p);
-  beta = Epot / -0.5f;
+  beta = Epot / - 0.5f;
   scale3NArray<T>(n, p, beta);
-  scale3NArray<T>(n, v, 1.0f / sqrt(beta));
+  scale3NArray<T>(n, v, 1.0 / sqrt(beta));
 }
 
 template <typename T>
-void InitAos(const uint64_t n, T *m, T *p, T *v, T *a = nullptr) {
+void InitAos(const int n, T *m, T *p, T *v, T *a = nullptr) {
   // Initialize masses equally
   InitMassU<T>(n, m);
 
@@ -204,18 +198,18 @@ void InitAos(const uint64_t n, T *m, T *p, T *v, T *a = nullptr) {
 // SOA
 
 template <typename T>
-static inline void scaleArray(uint64_t n, T *m, T scale) {
-  for (uint64_t i = 0; i < n; ++i) {
+static inline void scaleArray(int n, T *m, T scale) {
+  for (int i = 0; i < n; ++i) {
     m[i] *= scale;
   }
 }
 
 template <typename T>
-float inline EpSoa(uint64_t n, const T *m, const T *px, const T *py,
+float inline EpSoa(int n, const T *m, const T *px, const T *py,
                    const T *pz) {
   T Epot = 0.0;
   T D, x, y, z;
-  uint64_t i, j;
+  int i, j;
   for (i = 0; i < n; ++i) {
     for (j = i + 1; j < n; ++j) {
       x = px[i] - px[j];
@@ -229,10 +223,10 @@ float inline EpSoa(uint64_t n, const T *m, const T *px, const T *py,
 }
 
 template <typename T>
-float inline EkSoa(uint64_t n, const T *m, const T *vx, const T *vy,
+float inline EkSoa(int n, const T *m, const T *vx, const T *vy,
                    const T *vz) {
   T Ekin = 0.0;
-  uint64_t i;
+  int i;
   for (i = 0; i < n; ++i) {
     Ekin += 0.5 * m[i] * (vx[i] * vx[i] + vy[i] * vy[i] + vz[i] * vz[i]);
   }
@@ -240,9 +234,9 @@ float inline EkSoa(uint64_t n, const T *m, const T *vx, const T *vy,
 }
 
 template <typename T>
-void InitPosUSoa(uint64_t n, T *px, T *py, T *pz) {
+void InitPosUSoa(int n, T *px, T *py, T *pz) {
   T R, X, Y;
-  uint64_t i;
+  int i;
   for (i = 0; i < n; ++i) {
     R = fdrand<T>();
     X = acos(1.0 - 2.0 * fdrand<T>());
@@ -256,8 +250,8 @@ void InitPosUSoa(uint64_t n, T *px, T *py, T *pz) {
 }
 
 template <typename T>
-void InitVelUSoa(uint64_t n, T *vx, T *vy, T *vz) {
-  uint64_t i;
+void InitVelUSoa(int n, T *vx, T *vy, T *vz) {
+  int i;
   for (i = 0; i < n; ++i) {
     vx[i] = (1.0 - 2.0 * fdrand<T>());
     vy[i] = (1.0 - 2.0 * fdrand<T>());
@@ -266,8 +260,8 @@ void InitVelUSoa(uint64_t n, T *vx, T *vy, T *vz) {
 }
 
 template <typename T>
-void InitAccUSoa(uint64_t n, T *ax, T *ay, T *az) {
-  uint64_t i;
+void InitAccUSoa(int n, T *ax, T *ay, T *az) {
+  int i;
   for (i = 0; i < n; ++i) {
     ax[i] = 0.0;
     ay[i] = 0.0;
@@ -276,12 +270,12 @@ void InitAccUSoa(uint64_t n, T *ax, T *ay, T *az) {
 }
 
 template <typename T>
-void Move2CenterSoa(uint64_t n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
+void Move2CenterSoa(int n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
                     T *vz) {
   T ppx = 0.0, ppy = 0.0, ppz = 0.0;
   T vvx = 0.0, vvy = 0.0, vvz = 0.0;
   T mi;
-  uint64_t i;
+  int i;
 
   for (i = 0; i < n; ++i) {
     mi = m[i];
@@ -312,7 +306,7 @@ void Move2CenterSoa(uint64_t n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
 }
 
 template <typename T>
-void RescaleEnergySoa(uint64_t n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
+void RescaleEnergySoa(int n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
                       T *vz) {
   // Aarseth, 2003, Algorithm 7.2.
   T Epot = EpSoa<T>(n, m, px, py, pz);
@@ -344,7 +338,7 @@ void RescaleEnergySoa(uint64_t n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
 }
 
 template <typename T>
-void InitSoa(const uint64_t n, T *m, T *px, T *py, T *pz, T *vx, T *vy, T *vz) {
+void InitSoa(const int n, T *m, T *px, T *py, T *pz, T *vx, T *vy, T *vz) {
   // Initialize masses equally
   InitMassU<T>(n, m);
 

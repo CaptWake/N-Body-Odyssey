@@ -149,7 +149,10 @@ int main (int argc, char **argv) {
     std::cerr << "Must specify the number of bodies" << std::endl;
     exit(1);
   }
-  srand(0);
+  if (argc == 3)
+    srand(atoi(argv[2]));
+  else  
+    srand(0);
   
   int n = atoi(argv[1]);
   const float dt = 0.01f; 
@@ -187,9 +190,11 @@ int main (int argc, char **argv) {
     ComputeInteractions<<<blocks, threadsPerBlock>>>(n, d_p, d_v, dt );
     UpdatePosition<<<blocks, threadsPerBlock>>>(d_p, d_v, dt);
   }
+  cudaDeviceSynchronize();
   TIMERSTOP(simulation)
-
+  
   cudaMemcpy(h_p, d_p, n * sizeof(float4), cudaMemcpyDeviceToHost);
+  
   cudaMemcpy(h_v, d_v, n * sizeof(float4), cudaMemcpyDeviceToHost);
 
   float ek = Ek(n, h_v);

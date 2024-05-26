@@ -11,10 +11,10 @@ void SequentialAPUpdate(T dt);
 
 // Simulate laepfrog//
 template <typename T>
-void SequentialAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed);
+void SequentialAPSimulate(int n, T dt, T tEnd);
 
 // Simulate kick drift kick //
 template <typename T>
-void SequentialAPSimulate2(uint64_t n, T dt, T tEnd, uint64_t seed);
+void SequentialAPSimulate2(int n, T dt, T tEnd);
 
 #endif
