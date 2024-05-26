@@ -6,13 +6,16 @@
 #include <string>
 #include <vector>
 
+template <typename T>
 // Update //
-void OMPAPUpdate(float dt);
+void OMPAPUpdate(T dt);
 
+template <typename T>
 // Simulate laepfrog//
-void OMPAPSimulate(uint64_t n, float dt, float tEnd, uint64_t seed);
+void OMPAPSimulate(int n, T dt, T tEnd);
 
+template <typename T>
 // Simulate kick drift kick //
-void OMPAPSimulate2(uint64_t n, float dt, float tEnd, uint64_t seed);
+void OMPAPSimulate2(int n, T dt, T tEnd);
 
 #endif

@@ -9,18 +9,18 @@
 // copyright NVIDIA
 
 #ifdef FLOAT
-void SequentialAPAVXUpdate(const uint64_t n, float *m, float *px, float *py,
+void SequentialAPAVXUpdate(const int n, float *m, float *px, float *py,
                            float *pz, float *vx, float *vy, float *vz,
                            const float dt) {
   static __m256 DT = _mm256_set1_ps(dt);
   static __m256 s = _mm256_set1_ps(_SOFTENING);
 
-  for (uint64_t i = 0; i < n; ++i) {
+  for (int i = 0; i < n; ++i) {
     __m256 Fx = _mm256_set1_ps(0.0f);
     __m256 Fy = _mm256_set1_ps(0.0f);
     __m256 Fz = _mm256_set1_ps(0.0f);
 
-    for (uint64_t j = 0; j < n;
+    for (int j = 0; j < n;
          j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
 
       const __m256 Xi = _mm256_broadcast_ss(px + i);
@@ -61,7 +61,7 @@ void SequentialAPAVXUpdate(const uint64_t n, float *m, float *px, float *py,
     vz[i] += hsum_avx(Vz);
   }
 
-  for (uint64_t i = 0; i < n; i += 8) {
+  for (int i = 0; i < n; i += 8) {
     const __m256 X = _mm256_loadu_ps(px + i);
     const __m256 Y = _mm256_loadu_ps(py + i);
     const __m256 Z = _mm256_loadu_ps(pz + i);
@@ -80,18 +80,18 @@ void SequentialAPAVXUpdate(const uint64_t n, float *m, float *px, float *py,
   }
 }
 #else
-void SequentialAPAVXUpdate(const uint64_t n, double *m, double *px, double *py,
+void SequentialAPAVXUpdate(const int n, double *m, double *px, double *py,
                            double *pz, double *vx, double *vy, double *vz,
                            const double dt) {
   static const __m256d DT = _mm256_set1_pd(dt);
   static const __m256d s = _mm256_set1_pd(_SOFTENING);
 
-  for (uint64_t i = 0; i < n; ++i) {
+  for (int i = 0; i < n; ++i) {
     __m256d Fx = _mm256_set1_pd(0.0);
     __m256d Fy = _mm256_set1_pd(0.0);
     __m256d Fz = _mm256_set1_pd(0.0);
 
-    for (uint64_t j = 0; j < n;
+    for (int j = 0; j < n;
          j += 4) {  // exploit the SIMD computing blocks of 8 pairs each time
 
       const __m256d Xi = _mm256_broadcast_sd(px + i);
@@ -133,7 +133,7 @@ void SequentialAPAVXUpdate(const uint64_t n, double *m, double *px, double *py,
     vz[i] += hsum_avx(Vz);
   }
 
-  for (uint64_t i = 0; i < n; i += 4) {
+  for (int i = 0; i < n; i += 4) {
     const __m256d X = _mm256_loadu_pd(px + i);
     const __m256d Y = _mm256_loadu_pd(py + i);
     const __m256d Z = _mm256_loadu_pd(pz + i);
@@ -154,7 +154,7 @@ void SequentialAPAVXUpdate(const uint64_t n, double *m, double *px, double *py,
 #endif
 
 template <typename T>
-void SequentialAPAVXSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
+void SequentialAPAVXSimulate(int n, T dt, T tEnd) {
   T *m = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
   T *px = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
   T *py = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
@@ -166,17 +166,29 @@ void SequentialAPAVXSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
   // Init Bodies
   InitSoa<T>(n, m, px, py, pz, vx, vy, vz);
 
+#ifdef MONITOR_ENERGY
+  T ek = EkSoa<T>(n, m, vx, vy, vz);
+  T ep = EpSoa<T>(n, m, px, py, pz);
+  std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+
   TIMERSTART(simulation)
   // Simulation Loop
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     SequentialAPAVXUpdate(n, m, px, py, pz, vx, vy, vz, dt);
+#ifdef MONITOR_ENERGY
+    ek = EkSoa<T>(n, m, vx, vy, vz);
+    ep = EpSoa<T>(n, m, px, py, pz);
+    std::cout << "Etot: " << ek + ep << std::endl;
+#endif
   }
-  TIMERSTOP(simulation)
-
-  float ek = EkSoa<T>(n, m, vx, vy, vz);
-  float ep = EpSoa<T>(n, m, px, py, pz);
+#ifdef MONITOR_ENERGY
+  ek = EkSoa<T>(n, m, vx, vy, vz);
+  ep = EpSoa<T>(n, m, px, py, pz);
   std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+  TIMERSTOP(simulation)
 }
 
 int main(int argc, char **argv) {
@@ -185,5 +197,5 @@ int main(int argc, char **argv) {
     exit(1);
   }
   srand(0);
-  SequentialAPAVXSimulate<MY_T>(std::stoul(argv[1]), 0.01, 1, 0);
+  SequentialAPAVXSimulate<MY_T>(std::stoul(argv[1]), 0.01, 1);
 }

@@ -1,14 +1,13 @@
 #include "simulations/sequential_ap.h"
 
 #include <cmath>
-#include <fstream>
 
 #include "utilities/integrators.h"
 #include "utilities/nbody_helpers.h"
 #include "utilities/time_utils.h"
 
 template <typename T>
-void computeForce(uint64_t n, uint64_t i, const T *m, const T *p, T *a) {
+void computeForce(int n, int i, const T *m, const T *p, T *a) {
   //         a[k] = -p[k] / (r2*sqrtr2);
   T *ai = a + 3 * i;
   ai[0] = 0.0f;
@@ -18,7 +17,7 @@ void computeForce(uint64_t n, uint64_t i, const T *m, const T *p, T *a) {
   T py = p[3 * i + 1];
   T pz = p[3 * i + 2];
   T dx, dy, dz, D;
-  uint64_t j;
+  int j;
   for (j = 0; j < i; ++j) {
     // really dx is other way around, be this way we can avoid -1.0* later.
     dx = p[3 * j] - px;
@@ -46,13 +45,13 @@ void computeForce(uint64_t n, uint64_t i, const T *m, const T *p, T *a) {
 
 // copyright NVIDIA
 template <typename T>
-void SequentialAPUpdate(const uint64_t n, T *m, T *p, T *v, const T dt) {
-  for (uint64_t i = 0; i < n * 3; i += 3) {
+void SequentialAPUpdate(const int n, T *m, T *p, T *v, const T dt) {
+  for (int i = 0; i < n * 3; i += 3) {
     T fx = 0.0f;
     T fy = 0.0f;
     T fz = 0.0f;
-    for (uint64_t j = 0; j < n * 3; j += 3) {
-      uint64_t m2_id = j / 3;
+    for (int j = 0; j < n * 3; j += 3) {
+      int m2_id = j / 3;
       // compute distance pair
       T dx = p[j] - p[i];
 
@@ -73,7 +72,7 @@ void SequentialAPUpdate(const uint64_t n, T *m, T *p, T *v, const T dt) {
     v[i + 2] += fz * dt;
   }
 
-  for (uint64_t i = 0; i < n * 3; i += 3) {
+  for (int i = 0; i < n * 3; i += 3) {
     p[i] += v[i] * dt;
     p[i + 1] += v[i + 1] * dt;
     p[i + 2] += v[i + 2] * dt;
@@ -82,57 +81,76 @@ void SequentialAPUpdate(const uint64_t n, T *m, T *p, T *v, const T dt) {
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
 template <typename T>
-void SequentialAPSimulateV1(uint64_t n, T dt, T tEnd, uint64_t seed) {
+void SequentialAPSimulateV1(int n, T dt, T tEnd) {
   T *m = new T[n];
   T *p = new T[3 * n];
   T *v = new T[3 * n];
-  T *a = new T[3 * n];
 
   // Init Bodies
-  InitAos(n, m, p, v, a);
+  InitAos<T>(n, m, p, v);
+
+#ifdef MONITOR_ENERGY
+  T ek = Ek<T>(n, m, v);
+  T ep = Ep<T>(n, m, p);
+  std::cout << "Etot: " << ek + ep << std::endl;
+#endif
 
   TIMERSTART(simulation)
   // Simulation Loop
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     SequentialAPUpdate<T>(n, m, p, v, dt);
+#ifdef MONITOR_ENERGY
+    ek = Ek<T>(n, m, v);
+    ep = Ep<T>(n, m, p);
+    std::cout << "Etot: " << ek + ep << std::endl;
+#endif
   }
-  TIMERSTOP(simulation)
-
-  T ek = Ek<T>(n, m, v);
-  T ep = Ep<T>(n, m, p);
+#ifdef MONITOR_ENERGY
+  ek = Ek<T>(n, m, v);
+  ep = Ep<T>(n, m, p);
   std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+  TIMERSTOP(simulation)
 }
 
 
 // Kick-drift-kick //
 template <typename T>
-void SequentialAPSimulateV2(uint64_t n, T dt, T tEnd, uint64_t seed) {
+void SequentialAPSimulateV2(int n, T dt, T tEnd) {
   T *m = new T[n];
   T *p = new T[3 * n];
   T *v = new T[3 * n];
   T *a = new T[3 * n];
 
   // Init Bodies
-  uint64_t j = 0;
   InitAos<T>(n, m, p, v, a);
-
+#ifdef MONITOR_ENERGY
+  T ek = Ek<T>(n, m, v);
+  T ep = Ep<T>(n, m, p);
+  std::cout << "Etot: " << ek + ep << std::endl;
+#endif
   // Simulation Loop
   TIMERSTART(simulation)
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     performNBodyHalfStepA<T>(n, dt, p, v, a, m);
-    for (uint64_t i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i) {
       computeForce<T>(n, i, m, p, a);
     }
     performNBodyHalfStepB<T>(n, dt, p, v, a, m);
-    j++;
+#ifdef MONITOR_ENERGY
+    ek = Ek<T>(n, m, v);
+    ep = Ep<T>(n, m, p);
+    std::cout << "Etot: " << ek + ep << std::endl;
+#endif
   }
   TIMERSTOP(simulation)
-
-  T ek = Ek<T>(n, m, v);
-  T ep = Ep<T>(n, m, p);
+#ifdef MONITOR_ENERGY
+  ek = Ek<T>(n, m, v);
+  ep = Ep<T>(n, m, p);
   std::cout << "Etot: " << ek + ep << std::endl;
+#endif
 }
 
 int main(int argc, char **argv) {
@@ -140,6 +158,9 @@ int main(int argc, char **argv) {
     std::cerr << "Must specify the number of bodies" << std::endl;
     exit(1);
   }
-  srand(0);
-  SequentialAPSimulateV1<MY_T>(std::stoul(argv[1]), 0.01, 1, 0);
+  if (argc == 3)
+    srand(atoi(argv[2]));
+  else
+    srand(0);
+  SequentialAPSimulateV1<MY_T>(atoi(argv[1]), 0.01, 10);
 }

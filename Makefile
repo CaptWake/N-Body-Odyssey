@@ -6,11 +6,11 @@ SRC_DIR = src/simulations/
 # Define C++ compiler and flags
 CXX = g++
 MPIPPC = mpic++
+NVCXX = nvcc 
 CXXFLAGS = -Wall -O3 -std=c++17
 AVX_FLAGS = -march=native
 OPENMP_FLAGS = -fopenmp
-PRECISION = DOUBLE
-
+PRECISION = FLOAT
 # Define object files pattern
 OBJECTS = $(SRC_DIR)%.o
 
@@ -44,20 +44,20 @@ ICPPFLAGS += $(CPPFLAGS)
 ILDLIBS   += $(LDLIBS)
 
 # Define all available executables
-ALL_EXECUTABLES = nbody_sequential_ap nbody_sequential_ap_avx nbody_omp_ap nbody_sequential_bh nbody_sequential_bh_avx nbody_omp_bh nbody_hip_rocm_ap
+ALL_EXECUTABLES = nbody_sequential_ap nbody_sequential_ap_avx nbody_omp_ap nbody_sequential_bh nbody_sequential_bh_avx nbody_omp_bh nbody_hip_ap nbody_cuda_ap
 
 .PHONY: all clean
 
 all: $(ALL_EXECUTABLES)
 
 nbody_sequential_ap: $(SRC_DIR)sequential_ap.cc
-	$(CXX) $(CXXFLAGS) $(SRC_DIR)sequential_ap.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION)
+	$(CXX) $(CXXFLAGS) $(SRC_DIR)sequential_ap.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION) -DMONITOR_ENERGY
 
 nbody_sequential_ap_avx: $(SRC_DIR)sequential_ap_avx.cc
-	$(CXX) $(CXXFLAGS) $(AVX_FLAGS) $(SRC_DIR)sequential_ap_avx.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION)
+	$(CXX) $(CXXFLAGS) $(AVX_FLAGS) $(SRC_DIR)sequential_ap_avx.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION) -DMONITOR_ENERGY
 
 nbody_omp_ap: $(SRC_DIR)omp_ap.cc
-	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_ap.cc $(INCLUDE_DIR) -o $@ -DOMP -D$(PRECISION)
+	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_ap.cc $(INCLUDE_DIR) -o $@ -DOMP -D$(PRECISION) # -DMONITOR_ENERGY
 
 nbody_mpi_ap: $(SRC_DIR)mpi_ap.cc
 	$(MPIPPC) $(CXXFLAGS) $(SRC_DIR)mpi_ap.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION)
@@ -76,6 +76,9 @@ nbody_mpi_omp_avx_ap: $(SRC_DIR)mpi_omp_avx_ap.cc
 
 nbody_hip_ap: $(SRC_DIR)ap_soa.hip
 	$(HIPCXX) $(ICXXFLAGS) $(ICPPFLAGS) $(ILDFLAGS) $(INCLUDE_DIR) -o $@ $< $(ILDLIBS) -D$(PRECISION)
+
+nbody_cuda_ap: $(SRC_DIR)ap_soa.cu
+	$(NVCXX) $(INCLUDE_DIR) -o $@ $<
 
 # Generic object file compilation rule
 $(OBJECTS): $(SRC_DIR)%.cc

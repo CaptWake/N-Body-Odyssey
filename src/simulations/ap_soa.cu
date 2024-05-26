@@ -149,7 +149,10 @@ int main (int argc, char **argv) {
     std::cerr << "Must specify the number of bodies" << std::endl;
     exit(1);
   }
-  srand(0);
+  if (argc == 3)
+    srand(atoi(argv[2]));
+  else  
+    srand(0);
   
   int n = atoi(argv[1]);
   const float dt = 0.01f; 
@@ -167,12 +170,8 @@ int main (int argc, char **argv) {
   float4 *d_p, *d_v;
   cudaMalloc(&d_p, n * sizeof(float4));
   cudaMalloc(&d_v, n * sizeof(float4));
-  
-  cudaMemcpy(d_p, h_p, n * sizeof(float4), cudaMemcpyHostToDevice);
-  cudaMemcpy(d_v, h_v, n * sizeof(float4), cudaMemcpyHostToDevice);
-  
-  dim3 blocks, threadsPerBlock;
 
+  dim3 blocks, threadsPerBlock;
   if (n < MAX_THREADS_PER_BLOCK) {
     blocks = dim3(1);
     threadsPerBlock = dim3(n);
@@ -181,16 +180,23 @@ int main (int argc, char **argv) {
     blocks = dim3(n / MAX_THREADS_PER_BLOCK);
     threadsPerBlock = dim3(MAX_THREADS_PER_BLOCK);
   }
-   
+
+  TIMERSTART(total)
+  cudaMemcpy(d_p, h_p, n * sizeof(float4), cudaMemcpyHostToDevice);
+  cudaMemcpy(d_v, h_v, n * sizeof(float4), cudaMemcpyHostToDevice);
+  
   TIMERSTART(simulation)
   for (float t = 0; t < 0.1; t+= dt) {
     ComputeInteractions<<<blocks, threadsPerBlock>>>(n, d_p, d_v, dt );
     UpdatePosition<<<blocks, threadsPerBlock>>>(d_p, d_v, dt);
   }
+  cudaDeviceSynchronize();
   TIMERSTOP(simulation)
 
   cudaMemcpy(h_p, d_p, n * sizeof(float4), cudaMemcpyDeviceToHost);
+  
   cudaMemcpy(h_v, d_v, n * sizeof(float4), cudaMemcpyDeviceToHost);
+  TIMERSTOP(total)
 
   float ek = Ek(n, h_v);
   float ep = Ep(n, h_p);

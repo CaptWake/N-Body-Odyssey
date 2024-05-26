@@ -10,14 +10,14 @@
 
 // copyright NVIDIA
 template <typename T>
-void OMPAPUpdate(const uint64_t n, T *m, T *p, T *v, const T dt) {
+void OMPAPUpdate(const int n, T *m, T *p, T *v, const T dt) {
 #pragma omp parallel for schedule(runtime)
-  for (uint64_t i = 0; i < n * 3; i += 3) {
+  for (int i = 0; i < n * 3; i += 3) {
     T fx = 0.0f;
     T fy = 0.0f;
     T fz = 0.0f;
-    for (uint64_t j = 0; j < n * 3; j += 3) {
-      uint64_t m2_id = j / 3;
+    for (int j = 0; j < n * 3; j += 3) {
+      int m2_id = j / 3;
       // compute distance pair
       T dx = p[j] - p[i];
 
@@ -38,7 +38,7 @@ void OMPAPUpdate(const uint64_t n, T *m, T *p, T *v, const T dt) {
     v[i + 2] += fz * dt;
   }
 
-  for (uint64_t i = 0; i < n * 3; i += 3) {
+  for (int i = 0; i < n * 3; i += 3) {
     p[i] += v[i] * dt;
     p[i + 1] += v[i + 1] * dt;
     p[i + 2] += v[i + 2] * dt;
@@ -47,37 +47,51 @@ void OMPAPUpdate(const uint64_t n, T *m, T *p, T *v, const T dt) {
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
 template <typename T>
-void OMPAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
+void OMPAPSimulate(int n, T dt, T tEnd) {
   T *m = new T[n];
   T *p = new T[3 * n];
   T *v = new T[3 * n];
-  T *a = new T[3 * n];
 
   // Init Bodies
-  InitAos<T>(n, m, p, v, a);
+  InitAos<T>(n, m, p, v);
 
+#ifdef MONITOR_ENERGY
+  T ek = Ek<T>(n, m, v);
+  T ep = Ep<T>(n, m, p);
+  std::cout << "Etot: " << ek + ep << std::endl;
+#endif
   TIMERSTART(simulation)
   // Simulation Loop
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     OMPAPUpdate<T>(n, m, p, v, dt);
+#ifdef MONITOR_ENERGY
+    ek = Ek<T>(n, m, v);
+    ep = Ep<T>(n, m, p);
+    std::cout << "Etot: " << ek + ep << std::endl;
+#endif
   }
-  TIMERSTOP(simulation)
-  T ek = Ek<T>(n, m, v);
-  T ep = Ep<T>(n, m, p);
+#ifdef MONITOR_ENERGY
+  ek = Ek<T>(n, m, v);
+  ep = Ep<T>(n, m, p);
   std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+  TIMERSTOP(simulation)
 }
 
 int main(int argc, char **argv) {
   if (argc < 5) {
-    std::cerr << "Must specify the number of bodies, schedule type, chunk size "
-                 "and number of threads"
+    std::cerr << "Must specify the number of bodies, schedule type, chunk size, number of threads and seed (optional)"
               << std::endl;
     exit(1);
   }
-  srand(0);
+  if(argc == 6)
+    srand(atoi(argv[5]));
+  else
+    srand(0);
+
   SetScheduleType(argv[2], atoi(argv[3]));
   SetNumThread(atoi(argv[4]));
 
-  OMPAPSimulate<MY_T>(std::stoul(argv[1]), 0.01, 0.1, 0);
+  OMPAPSimulate<MY_T>(atoi(argv[1]), 0.01, 1);
 }

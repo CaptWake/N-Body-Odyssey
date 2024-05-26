@@ -194,6 +194,7 @@ int main (int argc, char **argv) {
                         blocks, threadsPerBlock, 0/*dynamic shared*/, 0/*stream*/, 
                         d_p, d_v, dt /* arguments to the compute kernel */);
   }
+  HIP_CHECK(hipDeviceSynchronize());
   TIMERSTOP(simulation)
 
   HIP_CHECK(hipMemcpy(h_p, d_p, n * sizeof(float4), hipMemcpyDeviceToHost))
