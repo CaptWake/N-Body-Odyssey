@@ -194,6 +194,7 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd) {
     vv = new T[3 * n];
     aa = new T[3 * n];
     InitAos<T>(n, mm, pp, vv, aa);
+
   }
 
   TIMERSTART(scatter)
@@ -212,6 +213,7 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd) {
     performNBodyHalfStepA<T>(localN, dt, p, v, a, m);
     // Update Bodies
     MPIAPUpdate<T>(localN, n, m, p, a, m_rec, p_rec);
+
     performNBodyHalfStepB<T>(localN, dt, p, v, a, m);
   }
   TIMERSTOP(simulation)
@@ -264,9 +266,20 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
   T *p = new T[3 * n];
   T *v = new T[3 * n];
 
-  if (my_rank == 0)
+  if (my_rank == 0){
     // Init Bodies
     InitAos<T>(n, m, p, v);
+#ifdef MONITOR_ENERGY
+    T ek = Ek<T>(n, m, v);
+    T ep = Ep<T>(n, m, p);
+    std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+    std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
+    T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+    std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
+  }
 
   MPI_Request *requests = (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
 
@@ -315,6 +328,18 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
                 &requests[i]);
     }
     performNBodyStep<T>(localN, m, p, v, requests, dt);
+    if (my_rank == 0){
+#ifdef MONITOR_ENERGY
+      T ek = Ek<T>(n, m, v);
+      T ep = Ep<T>(n, m, p);
+      std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+      std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
+      T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+      std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
+    }
     ++it;
   }
   TIMERSTOP(simulation)
@@ -338,12 +363,16 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
 
   MPI_Barrier(MPI_COMM_WORLD);
   if (my_rank == 0) {
-    T Epot = Ep<T>(n, m, p);
-    T Ekin = Ek<T>(n, m, v);
-    T E0 = Epot + Ekin;
-
-    fprintf(stderr, "Ekin: %.15g\nEpot: %.15g\n", Ekin, Epot);
-    fprintf(stderr, "Eend: %.15g\n", E0);
+#ifdef MONITOR_ENERGY
+    T ek = Ek<T>(n, m, v);
+    T ep = Ep<T>(n, m, p);
+    std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+    std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
+    T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+    std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
   }
 
   delete[] m;
@@ -368,9 +397,20 @@ void MPIAPSimulateV3(int n, T dt, T tEnd) {
   T *p_ = new T[localN * 3];
   T *v_ = new T[localN * 3];
 
-  if (my_rank == 0)
+  if (my_rank == 0){
     // Init Bodies
     InitAos<T>(n, m, p, v, a);
+#ifdef MONITOR_ENERGY
+    T ek = Ek<T>(n, m, v);
+    T ep = Ep<T>(n, m, p);
+    std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+    std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
+    T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+    std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
+  }
 
   TIMERSTART(broadcast)
   MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
@@ -401,6 +441,18 @@ void MPIAPSimulateV3(int n, T dt, T tEnd) {
         v_, 3 * localN, MPI_TYPE, v, 3 * localN, MPI_TYPE, MPI_COMM_WORLD);
     TIMERSTOP(allgather)
 
+    if (my_rank == 0) {
+#ifdef MONITOR_ENERGY
+      T ek = Ek<T>(n, m, v);
+      T ep = Ep<T>(n, m, p);
+      std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+      std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
+      T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+      std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
+    }
   }
   TIMERSTOP(simulation)
 
@@ -410,12 +462,16 @@ void MPIAPSimulateV3(int n, T dt, T tEnd) {
 
   MPI_Barrier(MPI_COMM_WORLD);
   if (my_rank == 0) {
-    T Epot = Ep<T>(n, m, p);
-    T Ekin = Ek<T>(n, m, v);
-    T E0 = Epot + Ekin;
-
-    fprintf(stderr, "Ekin: %.15g\nEpot: %.15g\n", Ekin, Epot);
-    fprintf(stderr, "Eend: %.15g\n", E0);
+#ifdef MONITOR_ENERGY
+    T ek = Ek<T>(n, m, v);
+    T ep = Ep<T>(n, m, p);
+    std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+    std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
+    T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+    std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
   }
   delete[] m;
   delete[] p;

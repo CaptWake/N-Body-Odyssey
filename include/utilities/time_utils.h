@@ -12,7 +12,7 @@
     std::chrono::duration<double> delta##label = b##label - a##label;          \
     std::cout << "# elapsed time (" << #label << "): " << delta##label.count() \
               << "s" << std::endl;
-#elif
+#else
   #include <mpi.h>
   #define TIMERINIT(label)                                                \
     double start##label = 0;                                              \

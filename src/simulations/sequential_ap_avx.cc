@@ -165,11 +165,15 @@ void SequentialAPAVXSimulate(int n, T dt, T tEnd) {
 
   // Init Bodies
   InitSoa<T>(n, m, px, py, pz, vx, vy, vz);
-
 #ifdef MONITOR_ENERGY
   T ek = EkSoa<T>(n, m, vx, vy, vz);
   T ep = EpSoa<T>(n, m, px, py, pz);
   std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+  std::array<T, 3> L = AngularMomentumSoa<T>(n, m, px, py, pz, vx, vy, vz);
+  T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+  std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
 #endif
 
   TIMERSTART(simulation)
@@ -182,11 +186,21 @@ void SequentialAPAVXSimulate(int n, T dt, T tEnd) {
     ep = EpSoa<T>(n, m, px, py, pz);
     std::cout << "Etot: " << ek + ep << std::endl;
 #endif
+#ifdef MONITOR_MOMENTUM
+    L = AngularMomentumSoa<T>(n, m, px, py, pz, vx, vy, vz);
+    mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+    std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
   }
 #ifdef MONITOR_ENERGY
   ek = EkSoa<T>(n, m, vx, vy, vz);
   ep = EpSoa<T>(n, m, px, py, pz);
   std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+  L = AngularMomentumSoa<T>(n, m, px, py, pz, vx, vy, vz);
+  mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+  std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
 #endif
   TIMERSTOP(simulation)
 }

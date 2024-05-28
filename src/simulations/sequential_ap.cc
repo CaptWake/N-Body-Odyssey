@@ -140,6 +140,12 @@ void SequentialAPSimulateV2(int n, T dt, T tEnd) {
   T ep = Ep<T>(n, m, p);
   std::cout << "Etot: " << ek + ep << std::endl;
 #endif
+#ifdef MONITOR_MOMENTUM
+  std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
+  T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+  std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
+
   // Simulation Loop
   TIMERSTART(simulation)
   for (T t = 0.0f; t < tEnd; t += dt) {
@@ -149,14 +155,15 @@ void SequentialAPSimulateV2(int n, T dt, T tEnd) {
       computeForce<T>(n, i, m, p, a);
     }
     performNBodyHalfStepB<T>(n, dt, p, v, a, m);
+
 #ifdef MONITOR_ENERGY
     ek = Ek<T>(n, m, v);
     ep = Ep<T>(n, m, p);
     std::cout << "Etot: " << ek + ep << std::endl;
 #endif
 #ifdef MONITOR_MOMENTUM
-  std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
-  T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+  L = AngularMomentum<T>(n, m, p, v);
+  mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
   std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
 #endif
   }
@@ -167,8 +174,8 @@ void SequentialAPSimulateV2(int n, T dt, T tEnd) {
   std::cout << "Etot: " << ek + ep << std::endl;
 #endif
 #ifdef MONITOR_MOMENTUM
-  std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
-  T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+  L = AngularMomentum<T>(n, m, p, v);
+  mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
   std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
 #endif
 }

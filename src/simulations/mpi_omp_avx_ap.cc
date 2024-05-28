@@ -192,10 +192,21 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
   T *pv = static_cast<T *>(_mm_malloc(6 * n * sizeof(T), 32));
   T *pv_ = static_cast<T *>(_mm_malloc(6 * localN * sizeof(T), 32));
 
-  if (my_rank == 0)
+  if (my_rank == 0) {
     // Init Bodies
     InitSoa<T>(
         n, m, pv, pv + n, pv + 2 * n, pv + 3 * n, pv + 4 * n, pv + 5 * n);
+#ifdef MONITOR_ENERGY
+    T ek = EkSoa<T>(n, m, pv + 3 * n, pv + 4 * n, pv + 5 * n);
+    T ep = EpSoa<T>(n, m, pv, pv + n, pv + 2 * n);
+    std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+    std::array<T, 3> L = AngularMomentumSoa<T>(n, m, pv, pv + n, pv + 2 * n, pv + 3 * n, pv + 4 * n, pv + 5 * n);
+    T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+    std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
+  }
 
   TIMERSTART(broadcast)
   MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
@@ -251,6 +262,20 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
     TIMERSTART(broadcast)
     MPI_Bcast(pv, 6 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
     TIMERSTOP(broadcast)
+
+    if (my_rank == 0) {
+#ifdef MONITOR_ENERGY
+      T ek = EkSoa<T>(n, m, pv + 3 * n, pv + 4 * n, pv + 5 * n);
+      T ep = EpSoa<T>(n, m, pv, pv + n, pv + 2 * n);
+      std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+      std::array<T, 3> L = AngularMomentumSoa<T>(n, m, pv, pv + n, pv + 2 * n, pv + 3 * n, pv + 4 * n, pv + 5 * n);
+      T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+      std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
+    }
+
   }
   TIMERSTOP(simulation)
 
@@ -261,9 +286,16 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
   TIMERPRINT(receive)
 
   if (my_rank == 0) {
+#ifdef MONITOR_ENERGY
     T ek = EkSoa<T>(n, m, pv + 3 * n, pv + 4 * n, pv + 5 * n);
     T ep = EpSoa<T>(n, m, pv, pv + n, pv + 2 * n);
     std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+    std::array<T, 3> L = AngularMomentumSoa<T>(n, m, pv, pv + n, pv + 2 * n, pv + 3 * n, pv + 4 * n, pv + 5 * n);
+    T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+    std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
   }
   MPI_Type_free(&block);  // Free the datatype when done
 }

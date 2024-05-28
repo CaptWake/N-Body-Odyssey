@@ -248,6 +248,21 @@ float inline EkSoa(int n, const T *m, const T *vx, const T *vy,
 }
 
 template <typename T>
+std::array<T, 3> inline AngularMomentumSoa(int n, const T *m,const T *px,
+                                           const T *py, const T *pz,
+                                           const T *vx, const T *vy,
+                                           const T *vz ) {
+  std::array<T, 3> L = {0.0, 0.0, 0.0};
+  int i;
+  for(i = 0; i < n; ++i) {
+    L[0] += m[i] * (py[i] * vz[i] - pz[i] * vx[i]);
+    L[1] += m[i] * (pz[i] * vx[i] - px[i] * vz[i]);
+    L[2] += m[i] * (px[i] * vy[i] - py[i] * vx[i]);
+  }
+  return L;
+}
+
+template <typename T>
 void InitPosUSoa(int n, T *px, T *py, T *pz) {
   T R, X, Y;
   int i;
