@@ -105,11 +105,21 @@ void SequentialAPSimulateV1(int n, T dt, T tEnd) {
     ep = Ep<T>(n, m, p);
     std::cout << "Etot: " << ek + ep << std::endl;
 #endif
+#ifdef MONITOR_MOMENTUM
+  std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
+  T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+  std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
   }
 #ifdef MONITOR_ENERGY
   ek = Ek<T>(n, m, v);
   ep = Ep<T>(n, m, p);
   std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+  std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
+  T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+  std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
 #endif
   TIMERSTOP(simulation)
 }
@@ -144,12 +154,22 @@ void SequentialAPSimulateV2(int n, T dt, T tEnd) {
     ep = Ep<T>(n, m, p);
     std::cout << "Etot: " << ek + ep << std::endl;
 #endif
+#ifdef MONITOR_MOMENTUM
+  std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
+  T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+  std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
+#endif
   }
   TIMERSTOP(simulation)
 #ifdef MONITOR_ENERGY
   ek = Ek<T>(n, m, v);
   ep = Ep<T>(n, m, p);
   std::cout << "Etot: " << ek + ep << std::endl;
+#endif
+#ifdef MONITOR_MOMENTUM
+  std::array<T, 3> L = AngularMomentum<T>(n, m, p, v);
+  T mod = sqrt(L[0] * L[0] + L[1] * L[1] + L[2] * L[2]);
+  std::cout << "L: " << "(" << L[0] << ", " << L[1] << ", " << L[2] << ") mod: "<< mod << std::endl;
 #endif
 }
 

@@ -5,6 +5,7 @@
 #ifndef NBODY_HELPERS_H_
 #define NBODY_HELPERS_H_
 
+#include <array>
 #ifdef DOUBLE
 #define MPI_TYPE MPI_DOUBLE
 #define MY_T double
@@ -62,6 +63,19 @@ T inline Ek(int n, T *m, T *v) {
   }
   return Ekin;
 }
+
+template <typename T>
+std::array<T, 3> inline AngularMomentum(int n, T *m, T *p, T *v) {
+  std::array<T, 3> L = {0.0, 0.0, 0.0};
+  int i;
+  for(i = 0; i < n; ++i) {
+    L[0] += m[i] * (p[3 * i + 1] * v[3 * i + 2] - p[3 * i + 2] * v[3 * i + 1]);
+    L[1] += m[i] * (p[3 * i + 2] * v[3 * i] - p[3 * i] * v[3 * i + 2]);
+    L[2] += m[i] * (p[3 * i] * v[3 * i + 1] - p[3 * i + 1] * v[3 * i]);
+  }
+  return L;
+}
+
 
 template <typename T>
 static inline void scale3NArray(int n, T *m, T scale) {

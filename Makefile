@@ -51,7 +51,7 @@ ALL_EXECUTABLES = nbody_sequential_ap nbody_sequential_ap_avx nbody_omp_ap nbody
 all: $(ALL_EXECUTABLES)
 
 nbody_sequential_ap: $(SRC_DIR)sequential_ap.cc
-	$(CXX) $(CXXFLAGS) $(SRC_DIR)sequential_ap.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION) -DMONITOR_ENERGY
+	$(CXX) $(CXXFLAGS) $(SRC_DIR)sequential_ap.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION) -DMONITOR_ENERGY -DMONITOR_MOMENTUM
 
 nbody_sequential_ap_avx: $(SRC_DIR)sequential_ap_avx.cc
 	$(CXX) $(CXXFLAGS) $(AVX_FLAGS) $(SRC_DIR)sequential_ap_avx.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION) -DMONITOR_ENERGY
