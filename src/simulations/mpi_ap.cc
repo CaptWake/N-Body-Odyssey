@@ -8,6 +8,7 @@
 #include "utilities/integrators.h"
 #include "utilities/nbody_helpers.h"
 #include "utilities/time_utils.h"
+#include <omp.h>
 
 #ifdef DOUBLE
 #define MPI_TYPE MPI_DOUBLE
@@ -23,6 +24,7 @@ TIMERINIT(gather)
 TIMERINIT(allgather)
 TIMERINIT(simulation)
 TIMERINIT(waitany)
+TIMERINIT(init)
 
 template <typename T>
 void MPIAPUpdate(int localN, int n, const T *__restrict__ m,
@@ -264,15 +266,20 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
   T *p = new T[3 * n];
   T *v = new T[3 * n];
 
-  if (my_rank == 0)
+  if (my_rank == 0){
     // Init Bodies
+    TIMERSTART(init)
     InitAos<T>(n, m, p, v);
+    TIMERSTOP(init)
+    TIMERPRINT(init)
+   }
 
   MPI_Request *requests = (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
 
   TIMERSTART(broadcast)
   MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
   TIMERSTOP(broadcast)
+  TIMERPRINT(broadcast)
 
   TIMERSTART(scatter)
   MPI_Scatter(p,
@@ -292,6 +299,7 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
               0,
               MPI_COMM_WORLD);
   TIMERSTOP(scatter)
+  TIMERPRINT(scatter)
 
   int it = 0;
   TIMERSTART(simulation)
@@ -318,6 +326,8 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
     ++it;
   }
   TIMERSTOP(simulation)
+  TIMERPRINT(waitany)
+  TIMERPRINT(simulation)
 
   TIMERSTART(gather)
   MPI_Gather(v + my_rank * localN * 3,
@@ -329,12 +339,7 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
              0,
              MPI_COMM_WORLD);
   TIMERSTOP(gather)
-
-  TIMERPRINT(broadcast)
-  TIMERPRINT(scatter)
-  TIMERPRINT(simulation)
   TIMERPRINT(gather)
-  TIMERPRINT(waitany)
 
   MPI_Barrier(MPI_COMM_WORLD);
   if (my_rank == 0) {
@@ -414,8 +419,8 @@ void MPIAPSimulateV3(int n, T dt, T tEnd) {
     T Ekin = Ek<T>(n, m, v);
     T E0 = Epot + Ekin;
 
-    fprintf(stderr, "Ekin: %.15g\nEpot: %.15g\n", Ekin, Epot);
-    fprintf(stderr, "Eend: %.15g\n", E0);
+    printf("Ekin: %.15g\nEpot: %.15g\n", Ekin, Epot);
+    printf("Eend: %.15g\n", E0);
   }
   delete[] m;
   delete[] p;
@@ -433,7 +438,7 @@ int main(int argc, char **argv) {
   }
   int seed = 0;
   srand(seed);
-  MPIAPSimulateV2<MY_T>(atoi(argv[1]), 0.01, 10);
+  MPIAPSimulateV3<MY_T>(atoi(argv[1]), 0.01, 10);
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
 }

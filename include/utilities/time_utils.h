@@ -17,7 +17,7 @@
     std::cout << "# elapsed time (" << #label << "): " << total##label \
               << "s" << std::endl;
 
-#elif
+#else
   #include <chrono>
   #define TIMERSTART(label)             \
     std::chrono::time_point<std::chrono::system_clock> a##label, b##label; \

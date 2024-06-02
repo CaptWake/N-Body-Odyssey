@@ -65,11 +65,11 @@ void OMPAPSimulate(int n, T dt, T tEnd) {
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     OMPAPUpdate<T>(n, m, p, v, dt);
-#ifdef MONITOR_ENERGY
-    ek = Ek<T>(n, m, v);
-    ep = Ep<T>(n, m, p);
-    std::cout << "Etot: " << ek + ep << std::endl;
-#endif
+//#ifdef MONITOR_ENERGY
+//   ek = Ek<T>(n, m, v);
+//    ep = Ep<T>(n, m, p);
+//    std::cout << "Etot: " << ek + ep << std::endl;
+//#endif
   }
 #ifdef MONITOR_ENERGY
   ek = Ek<T>(n, m, v);

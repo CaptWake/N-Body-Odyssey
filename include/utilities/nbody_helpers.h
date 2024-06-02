@@ -37,10 +37,10 @@ static inline T fdrand() {
 template <typename T>
 T inline Ep(int n, T *m, T *p) {
   T Epot = 0.0;
-  T D, x, y, z;
-  int i, j;
-  for (i = 0; i < n; ++i) {
-    for (j = i + 1; j < n; ++j) {
+#pragma omp parallel for reduction(+:Epot)
+  for (int i = 0; i < n; ++i) {
+    for (int j = i + 1; j < n; ++j) {
+      T D, x, y, z;
       x = p[3 * i + 0] - p[3 * j + 0];
       y = p[3 * i + 1] - p[3 * j + 1];
       z = p[3 * i + 2] - p[3 * j + 2];
@@ -54,8 +54,8 @@ T inline Ep(int n, T *m, T *p) {
 template <typename T>
 T inline Ek(int n, T *m, T *v) {
   T Ekin = 0.0;
-  int i;
-  for (i = 0; i < n; ++i) {
+#pragma omp parallel for reduction(+:Ekin)
+  for (int i = 0; i < n; ++i) {
     Ekin += 0.5* m[i] *
             (v[3 * i] * v[3 * i] + v[3 * i + 1] * v[3 * i + 1] +
              v[3 * i + 2] * v[3 * i + 2]);
@@ -65,6 +65,7 @@ T inline Ek(int n, T *m, T *v) {
 
 template <typename T>
 static inline void scale3NArray(int n, T *m, T scale) {
+#pragma omp parallel for 
   for (int i = 0; i < 3 * n; ++i) {
     m[i] *= scale;
   }
@@ -73,43 +74,61 @@ static inline void scale3NArray(int n, T *m, T scale) {
 template <typename T>
 void InitMassU(int n, T *m) {
   T mi = _M / n;
-  int i;
 
-  for (i = 0; i < n; ++i) {
+#pragma omp parallel for 
+  for (int i = 0; i < n; ++i) {
     m[i] = mi;
   }
 }
 
 template <typename T>
 void InitPosU(int n, T *p) {
-  T R, X, Y;
-  int i;
-  for (i = 0; i < n; ++i) {
-    R = fdrand<T>();
-    X = acos(1.0 - 2.0 * fdrand<T>());
-    Y = fdrand<T>() * 2.0 * _PI;
+#pragma omp parallel
+  {
+#ifdef OMP
+    unsigned int seed = omp_get_thread_num();	 
+    auto myrand = [&seed](){return (double)rand_r(&seed) / (double) RAND_MAX;};
+#else
+    auto myrand = [](){return fdrand<T>();};
+#endif
+    #pragma omp for
+    for (int i = 0; i < n; ++i) {
+      T R, X, Y;
+      R = myrand();
+      X = acos(1.0 - 2.0 * myrand());
+      Y = myrand() * 2.0 * _PI;
 
-    // https://www.researchgate.net/figure/Figure-A1-Spherical-coordinates_fig8_284609648
-    p[3 * i + 0] = R * sin(X) * cos(Y);
-    p[3 * i + 1] = R * sin(X) * sin(Y);
-    p[3 * i + 2] = R * cos(X);
+      // https://www.researchgate.net/figure/Figure-A1-Spherical-coordinates_fig8_284609648
+      p[3 * i + 0] = R * sin(X) * cos(Y);
+      p[3 * i + 1] = R * sin(X) * sin(Y);
+      p[3 * i + 2] = R * cos(X);
+    }
   }
 }
 
 template <typename T>
 void InitVelU(int n, T *v) {
-  int i;
-  for (i = 0; i < n; ++i) {
-    v[3 * i] = (1.0 - 2.0 * fdrand<T>());
-    v[3 * i + 1] = (1.0 - 2.0 * fdrand<T>());
-    v[3 * i + 2] = (1.0 - 2.0 * fdrand<T>());
+#pragma omp parallel
+  {
+#ifdef OMP
+    unsigned int seed = omp_get_thread_num();	 
+    auto myrand = [&seed](){return (double)rand_r(&seed) / (double) RAND_MAX;};
+#else
+    auto myrand = [](){return fdrand<T>();};
+#endif
+    #pragma omp for
+    for (int i = 0; i < n; ++i) {
+      v[3 * i] = (1.0 - 2.0 * myrand());
+      v[3 * i + 1] = (1.0 - 2.0 * myrand());
+      v[3 * i + 2] = (1.0 - 2.0 * myrand());
+    }
   }
 }
 
 template <typename T>
 void InitAccU(int n, T *a) {
-  int i;
-  for (i = 0; i < n; ++i) {
+  #pragma omp for
+  for (int i = 0; i < n; ++i) {
     a[3 * i] = 0.0;
     a[3 * i + 1] = 0.0;
     a[3 * i + 2] = 0.0;
@@ -121,9 +140,9 @@ void Move2Center(int n, T *m, T *p, T *v) {
   T px = 0.0, py = 0.0, pz = 0.0;
   T vx = 0.0, vy = 0.0, vz = 0.0;
   T mi;
-  int i;
 
-  for (i = 0; i < n; ++i) {
+#pragma omp parallel for reduction(+:px,py,pz,vx,vy,vz)
+  for (int i = 0; i < n; ++i) {
     mi = m[i];
     px += p[3 * i] * mi;
     py += p[3 * i + 1] * mi;
@@ -141,7 +160,8 @@ void Move2Center(int n, T *m, T *p, T *v) {
   vy /= _M;
   vz /= _M;
 
-  for (i = 0; i < n; ++i) {
+#pragma omp parallel for
+  for (int i = 0; i < n; ++i) {
     p[3 * i] -= px;
     p[3 * i + 1] -= py;
     p[3 * i + 2] -= pz;
@@ -199,6 +219,7 @@ void InitAos(const int n, T *m, T *p, T *v, T *a = nullptr) {
 
 template <typename T>
 static inline void scaleArray(int n, T *m, T scale) {
+#pragma omp parallel for
   for (int i = 0; i < n; ++i) {
     m[i] *= scale;
   }
@@ -208,10 +229,10 @@ template <typename T>
 float inline EpSoa(int n, const T *m, const T *px, const T *py,
                    const T *pz) {
   T Epot = 0.0;
-  T D, x, y, z;
-  int i, j;
-  for (i = 0; i < n; ++i) {
-    for (j = i + 1; j < n; ++j) {
+#pragma omp parallel for reduction(+:Epot)
+  for (int i = 0; i < n; ++i) {
+    for (int j = i + 1; j < n; ++j) {
+      T D, x, y, z;
       x = px[i] - px[j];
       y = py[i] - py[j];
       z = pz[i] - pz[j];
@@ -226,8 +247,8 @@ template <typename T>
 float inline EkSoa(int n, const T *m, const T *vx, const T *vy,
                    const T *vz) {
   T Ekin = 0.0;
-  int i;
-  for (i = 0; i < n; ++i) {
+#pragma omp parallel for reduction(+:Ekin)
+  for (int i = 0; i < n; ++i) {
     Ekin += 0.5 * m[i] * (vx[i] * vx[i] + vy[i] * vy[i] + vz[i] * vz[i]);
   }
   return Ekin;
@@ -235,34 +256,52 @@ float inline EkSoa(int n, const T *m, const T *vx, const T *vy,
 
 template <typename T>
 void InitPosUSoa(int n, T *px, T *py, T *pz) {
-  T R, X, Y;
-  int i;
-  for (i = 0; i < n; ++i) {
-    R = fdrand<T>();
-    X = acos(1.0 - 2.0 * fdrand<T>());
-    Y = fdrand<T>() * 2.0 * _PI;
+#pragma omp parallel
+  {
+#ifdef OMP
+    unsigned int seed = omp_get_thread_num();	 
+    auto myrand = [&seed](){return (double)rand_r(&seed) / (double) RAND_MAX;};
+#else
+    auto myrand = [](){return fdrand<T>();};
+#endif
+    #pragma omp for
+    for (int i = 0; i < n; ++i) {
+      T R, X, Y;
+      R = myrand();
+      X = acos(1.0 - 2.0 * myrand());
+      Y = myrand() * 2.0 * _PI;
 
-    // https://www.researchgate.net/figure/Figure-A1-Spherical-coordinates_fig8_284609648
-    px[i] = R * sin(X) * cos(Y);
-    py[i] = R * sin(X) * sin(Y);
-    pz[i] = R * cos(X);
+      // https://www.researchgate.net/figure/Figure-A1-Spherical-coordinates_fig8_284609648
+      px[i] = R * sin(X) * cos(Y);
+      py[i] = R * sin(X) * sin(Y);
+      pz[i] = R * cos(X);
+    }
   }
 }
 
 template <typename T>
 void InitVelUSoa(int n, T *vx, T *vy, T *vz) {
-  int i;
-  for (i = 0; i < n; ++i) {
-    vx[i] = (1.0 - 2.0 * fdrand<T>());
-    vy[i] = (1.0 - 2.0 * fdrand<T>());
-    vz[i] = (1.0 - 2.0 * fdrand<T>());
+#pragma omp parallel
+  {
+#ifdef OMP
+    unsigned int seed = omp_get_thread_num();	 
+    auto myrand = [&seed](){return (double)rand_r(&seed) / (double) RAND_MAX;};
+#else
+    auto myrand = [](){return fdrand<T>();};
+#endif
+    #pragma omp for
+    for (int i = 0; i < n; ++i) {
+      vx[i] = (1.0 - 2.0 * myrand());
+      vy[i] = (1.0 - 2.0 * myrand());
+      vz[i] = (1.0 - 2.0 * myrand());
+    }
   }
 }
 
 template <typename T>
 void InitAccUSoa(int n, T *ax, T *ay, T *az) {
-  int i;
-  for (i = 0; i < n; ++i) {
+#pragma omp parallel for
+  for (int i = 0; i < n; ++i) {
     ax[i] = 0.0;
     ay[i] = 0.0;
     az[i] = 0.0;
@@ -275,9 +314,9 @@ void Move2CenterSoa(int n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
   T ppx = 0.0, ppy = 0.0, ppz = 0.0;
   T vvx = 0.0, vvy = 0.0, vvz = 0.0;
   T mi;
-  int i;
 
-  for (i = 0; i < n; ++i) {
+#pragma omp parallel for reduction(+:ppx,ppy,ppz,vvx,vvy,vvz)
+  for (int i = 0; i < n; ++i) {
     mi = m[i];
     ppx += px[i] * mi;
     ppy += py[i] * mi;
@@ -295,7 +334,8 @@ void Move2CenterSoa(int n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
   vvy /= _M;
   vvz /= _M;
 
-  for (i = 0; i < n; ++i) {
+#pragma omp parallel for
+  for (int i = 0; i < n; ++i) {
     px[i] -= ppx;
     py[i] -= ppy;
     pz[i] -= ppz;
