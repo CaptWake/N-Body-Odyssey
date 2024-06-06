@@ -4,6 +4,35 @@
 #include <omp.h>
 
 #define MAX_THREADS_PER_BLOCK 1024
+#include <cstring> // Add this line to include the necessary header for strcmp
+#include <cstdlib> // Add this line to include the necessary header for exit
+#include <algorithm>
+
+void setDeviceByName(const char* deviceName) {
+  int deviceCount;
+  cudaGetDeviceCount(&deviceCount);
+  int targetDevice = -1;
+  for (int i = 0; i < deviceCount; ++i) {
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, i);
+    std::string fullName(deviceProp.name);
+    std::string shortName(deviceName);
+    // Convert both names to lowercase for case-insensitive comparison
+    std::transform(fullName.begin(), fullName.end(), fullName.begin(), ::tolower);
+    std::transform(shortName.begin(), shortName.end(), shortName.begin(), ::tolower);
+    if (fullName.find(shortName) != std::string::npos) {
+      targetDevice = i;
+      break;
+    }
+  }
+  if (targetDevice != -1) {
+    cudaSetDevice(targetDevice);
+    std::cout << "Device " << deviceName << " set as the current device." << std::endl;
+  } else {
+    std::cerr << "Device " << deviceName << " not found." << std::endl;
+    exit(1);
+  }
+}
 
 double inline xoxyi_rand(unsigned int *seed){
   return (double)rand_r(seed) / (double) RAND_MAX;
@@ -186,6 +215,9 @@ int main (int argc, char **argv) {
   const double dt = 0.01f; 
   
   double4 *h_p, *h_v;
+
+  // Set device specified as argument to the program
+  setDeviceByName(argv[3]);
 
   // Allocate pinned memory
   cudaMallocHost(&h_p, n * sizeof(double4));
