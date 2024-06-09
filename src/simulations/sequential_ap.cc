@@ -162,5 +162,5 @@ int main(int argc, char **argv) {
     srand(atoi(argv[2]));
   else
     srand(0);
-  SequentialAPSimulateV1<MY_T>(atoi(argv[1]), 0.01, 10);
+  SequentialAPSimulateV1<MY_T>(atoi(argv[1]), 0.01, 1);
 }
