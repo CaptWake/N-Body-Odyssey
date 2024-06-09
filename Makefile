@@ -60,7 +60,7 @@ nbody_omp_ap: $(SRC_DIR)omp_ap.cc
 	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)omp_ap.cc $(INCLUDE_DIR) -o $@ -DOMP -D$(PRECISION) #-DMONITOR_ENERGY
 
 nbody_mpi_ap: $(SRC_DIR)mpi_ap.cc
-	$(MPIPPC) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)mpi_ap.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION) -DOMP -DUSE_MPI -DMONITOR_ENERGY
+	$(MPIPPC) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)mpi_ap.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION) -DOMP -DUSE_MPI
 
 nbody_sequential_bh: $(SRC_DIR)sequential_bh.cc
 	$(CXX) $(CXXFLAGS) $(SRC_DIR)sequential_bh.cc $(INCLUDE_DIR) -o $@

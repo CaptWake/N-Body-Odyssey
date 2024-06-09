@@ -255,7 +255,7 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd) {
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
 template <typename T>
-void MPIAPSimulateV2(int n, T dt, T tEnd) {
+void MPIAPSimulateV2(int n, T dt, T tEnd, int seed) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -269,13 +269,14 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
   if (my_rank == 0){
     // Init Bodies
     TIMERSTART(init)
-    InitAos<T>(n, m, p, v);
+    InitAos<T>(n, m, p, v, seed);
     TIMERSTOP(init)
     TIMERPRINT(init)
    }
 
   MPI_Request *requests = (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
 
+  TIMERSTART(simulation)
   TIMERSTART(broadcast)
   MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
   TIMERSTOP(broadcast)
@@ -302,11 +303,11 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
   TIMERPRINT(scatter)
 
   int it = 0;
-  TIMERSTART(simulation)
   // Simulation Loop
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     for (int i = 0; i < nproc; ++i) {
+      TIMERSTART(waitany)
       MPI_Isend(p + my_rank * localN * 3,
                 localN * 3,
                 MPI_TYPE,
@@ -321,6 +322,7 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
                 it,
                 MPI_COMM_WORLD,
                 &requests[i]);
+       TIMERSTOP(waitany)
     }
     performNBodyStep<T>(localN, m, p, v, requests, dt);
     ++it;
@@ -358,7 +360,7 @@ void MPIAPSimulateV2(int n, T dt, T tEnd) {
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
 template <typename T>
-void MPIAPSimulateV3(int n, T dt, T tEnd) {
+void MPIAPSimulateV3(int n, T dt, T tEnd, int seed) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -375,8 +377,9 @@ void MPIAPSimulateV3(int n, T dt, T tEnd) {
 
   if (my_rank == 0)
     // Init Bodies
-    InitAos<T>(n, m, p, v, a);
+    InitAos<T>(n, m, p, v, a, seed);
 
+  TIMERSTART(simulation)
   TIMERSTART(broadcast)
   MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Bcast(p, 3 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
@@ -394,7 +397,6 @@ void MPIAPSimulateV3(int n, T dt, T tEnd) {
     v_[i + 2] = v[my_rank * localN * 3 + i + 2];
   }
 
-  TIMERSTART(simulation)
   // Simulation Loop
   for (float t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
@@ -436,9 +438,10 @@ int main(int argc, char **argv) {
     std::cerr << "Must specify the number of bodies" << std::endl;
     exit(1);
   }
-  int seed = 0;
-  srand(seed);
-  MPIAPSimulateV3<MY_T>(atoi(argv[1]), 0.01, 10);
+#ifndef OMP
+  srand(atoi(argv[2]));
+#endif
+  MPIAPSimulateV2<MY_T>(atoi(argv[1]), 0.01, 10, atoi(argv[2]));
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
 }

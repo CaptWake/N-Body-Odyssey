@@ -82,12 +82,12 @@ void InitMassU(int n, T *m) {
 }
 
 template <typename T>
-void InitPosU(int n, T *p) {
+void InitPosU(int n, T *p, int seed = 0) {
 #pragma omp parallel
   {
 #ifdef OMP
-    unsigned int seed = omp_get_thread_num();	 
-    auto myrand = [&seed](){return (double)rand_r(&seed) / (double) RAND_MAX;};
+    unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();	 
+    auto myrand = [&](){return (double)rand_r(&seedT) / (double) RAND_MAX;};
 #else
     auto myrand = [](){return fdrand<T>();};
 #endif
@@ -107,12 +107,12 @@ void InitPosU(int n, T *p) {
 }
 
 template <typename T>
-void InitVelU(int n, T *v) {
+void InitVelU(int n, T *v, int seed = 0) {
 #pragma omp parallel
   {
 #ifdef OMP
-    unsigned int seed = omp_get_thread_num();	 
-    auto myrand = [&seed](){return (double)rand_r(&seed) / (double) RAND_MAX;};
+    unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();	 
+    auto myrand = [&](){return (double)rand_r(&seedT) / (double) RAND_MAX;};
 #else
     auto myrand = [](){return fdrand<T>();};
 #endif
@@ -193,15 +193,15 @@ void RescaleEnergy(int n, T *m, T *p, T *v) {
 }
 
 template <typename T>
-void InitAos(const int n, T *m, T *p, T *v, T *a = nullptr) {
+void InitAos(const int n, T *m, T *p, T *v, int seed = 0, T *a = nullptr) {
   // Initialize masses equally
   InitMassU<T>(n, m);
 
   // Initialize position with uniform distribution
-  InitPosU(n, p);
+  InitPosU(n, p, seed);
 
   // Initialize velocities with uniform distribution
-  InitVelU(n, v);
+  InitVelU(n, v, seed);
 
   if (a != nullptr)
     // Initialize masses equally
@@ -255,12 +255,12 @@ float inline EkSoa(int n, const T *m, const T *vx, const T *vy,
 }
 
 template <typename T>
-void InitPosUSoa(int n, T *px, T *py, T *pz) {
+void InitPosUSoa(int n, T *px, T *py, T *pz, int seed = 0) {
 #pragma omp parallel
   {
 #ifdef OMP
-    unsigned int seed = omp_get_thread_num();	 
-    auto myrand = [&seed](){return (double)rand_r(&seed) / (double) RAND_MAX;};
+    unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();	 
+    auto myrand = [&](){return (double)rand_r(&seedT) / (double) RAND_MAX;};
 #else
     auto myrand = [](){return fdrand<T>();};
 #endif
@@ -280,12 +280,12 @@ void InitPosUSoa(int n, T *px, T *py, T *pz) {
 }
 
 template <typename T>
-void InitVelUSoa(int n, T *vx, T *vy, T *vz) {
+void InitVelUSoa(int n, T *vx, T *vy, T *vz, int seed = 0) {
 #pragma omp parallel
   {
 #ifdef OMP
-    unsigned int seed = omp_get_thread_num();	 
-    auto myrand = [&seed](){return (double)rand_r(&seed) / (double) RAND_MAX;};
+    unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();	 
+    auto myrand = [&](){return (double)rand_r(&seedT) / (double) RAND_MAX;};
 #else
     auto myrand = [](){return fdrand<T>();};
 #endif
@@ -378,15 +378,15 @@ void RescaleEnergySoa(int n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
 }
 
 template <typename T>
-void InitSoa(const int n, T *m, T *px, T *py, T *pz, T *vx, T *vy, T *vz) {
+void InitSoa(const int n, T *m, T *px, T *py, T *pz, T *vx, T *vy, T *vz, int seed = 0) {
   // Initialize masses equally
   InitMassU<T>(n, m);
 
   // Initialize position with uniform distribution
-  InitPosUSoa<T>(n, px, py, pz);
+  InitPosUSoa<T>(n, px, py, pz, seed);
 
   // Initialize velocities with uniform distribution
-  InitVelUSoa<T>(n, vx, vy, vz);
+  InitVelUSoa<T>(n, vx, vy, vz, seed);
 
   // Translate bodies to move the center of mass on center of the coordinate
   // system
