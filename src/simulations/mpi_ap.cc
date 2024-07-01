@@ -327,9 +327,6 @@ void MPIAPSimulateV2(int n, T dt, T tEnd, int seed) {
     performNBodyStep<T>(localN, m, p, v, requests, dt);
     ++it;
   }
-  TIMERSTOP(simulation)
-  TIMERPRINT(waitany)
-  TIMERPRINT(simulation)
 
   TIMERSTART(gather)
   MPI_Gather(v + my_rank * localN * 3,
@@ -342,6 +339,10 @@ void MPIAPSimulateV2(int n, T dt, T tEnd, int seed) {
              MPI_COMM_WORLD);
   TIMERSTOP(gather)
   TIMERPRINT(gather)
+
+  TIMERSTOP(simulation)
+  TIMERPRINT(waitany)
+  TIMERPRINT(simulation)
 
   MPI_Barrier(MPI_COMM_WORLD);
   if (my_rank == 0) {
