@@ -78,10 +78,10 @@ nbody_hip_ap: $(SRC_DIR)ap_soa.hip
 	$(HIPCXX) $(ICXXFLAGS) $(ICPPFLAGS) $(ILDFLAGS) $(INCLUDE_DIR) -o $@ $< $(ILDLIBS) -D$(PRECISION)
 
 nbody_cuda_ap_float: $(SRC_DIR)ap_soa_float.cu
-	$(NVCXX) $(INCLUDE_DIR) -Xcompiler "-fopenmp" -o $@ $< 
+	$(NVCXX) $(INCLUDE_DIR) -Xcompiler "-fopenmp" -o $@ $< -DOMP
 
 nbody_cuda_ap_double: $(SRC_DIR)ap_soa_double.cu
-	$(NVCXX) $(INCLUDE_DIR) -Xcompiler "-fopenmp" -o $@ $< 
+	$(NVCXX) $(INCLUDE_DIR) -Xcompiler "-fopenmp" -o $@ $< -DOMP
 
 # Generic object file compilation rule
 $(OBJECTS): $(SRC_DIR)%.cc

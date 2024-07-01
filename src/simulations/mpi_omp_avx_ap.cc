@@ -177,7 +177,7 @@ void SequentialAPAVXUpdate(const int n, const int localN, double *m, double *px,
 
 #endif
 template <typename T>
-void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
+void MPIAPSimulate(int n, T dt, T tEnd, int seed) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -195,8 +195,9 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
   if (my_rank == 0)
     // Init Bodies
     InitSoa<T>(
-        n, m, pv, pv + n, pv + 2 * n, pv + 3 * n, pv + 4 * n, pv + 5 * n);
+        n, m, pv, pv + n, pv + 2 * n, pv + 3 * n, pv + 4 * n, pv + 5 * n, seed);
 
+  TIMERSTART(simulation)
   TIMERSTART(broadcast)
   MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Bcast(pv, 6 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
@@ -212,7 +213,6 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
     pv_[i + 5 * localN] = pv[idx + 5 * n];
   }
 
-  TIMERSTART(simulation)
   // Simulation Loop
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
@@ -268,16 +268,20 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
   MPI_Type_free(&block);  // Free the datatype when done
 }
 
+// nbody, num thread, seed
 int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
   if (argc < 4) {
     std::cerr << "Must specify the number of bodies, " << std::endl;
     exit(1);
   }
+  int n = atoi(argv[1]);
+  int num_thread = atoi(argv[2]);
+  int seed = atoi(argv[3]);
   srand(0);
-  SetScheduleType(argv[2], atoi(argv[3]));
-  SetNumThread(atoi(argv[4]));
-  MPIAPSimulate<MY_T>(std::stoul(argv[1]), 0.01, 1, 0);
+  omp_set_schedule(omp_sched_static, n / num_thread);
+  SetNumThread(num_thread);
+  MPIAPSimulate<MY_T>(n, 0.01, 1, seed);
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
   // mpi_ap(12, 1.0f);

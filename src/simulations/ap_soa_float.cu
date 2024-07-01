@@ -70,20 +70,20 @@ static inline void scale4DArray(const int n, float4 *m, const float scale) {
   }
 }
 
-void InitPosVel(const int n, float4 *p, float4 *v) {
+void InitPosVel(const int n, float4 *p, float4 *v, int seed) {
 #pragma omp parallel
  { 
-  unsigned int seed = omp_get_thread_num();	 
+  unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();	 
   #pragma omp for
     for (int i = 0; i < n; ++i) {
       float R, X, Y;
       float mi = _M / n;
-      R = xoxyi_rand(&seed);
-      X = acosf(1.0f - 2.0f * xoxyi_rand(&seed));
-      Y = xoxyi_rand(&seed) * 2.0f * _PI;
+      R = xoxyi_rand(&seedT);
+      X = acosf(1.0f - 2.0f * xoxyi_rand(&seedT));
+      Y = xoxyi_rand(&seedT) * 2.0f * _PI;
       // https://www.researchgate.net/figure/Figure-A1-Spherical-coordinates_fig8_284609648
       p[i] = make_float4(R * sinf(X) * cosf(Y), R * sinf(X) * sinf(Y), R * cosf(X), mi);
-      v[i] = make_float4(1.0f - 2.0f * xoxyi_rand(&seed), 1.0f - 2.0f * xoxyi_rand(&seed), 1.0f - 2.0f * xoxyi_rand(&seed), mi);
+      v[i] = make_float4(1.0f - 2.0f * xoxyi_rand(&seedT), 1.0f - 2.0f * xoxyi_rand(&seedT), 1.0f - 2.0f * xoxyi_rand(&seedT), mi);
     }
   }
 }
@@ -155,9 +155,9 @@ void RescaleEnergy(const int n, float4 *p, float4 *v) {
   scale4DArray(n, v, 1.0f / sqrtf(beta));
 }
 
-void InitBodies(const int n, float4 *p, float4 *v) {
+void InitBodies(const int n, float4 *p, float4 *v, int seed = 0) {
   // Initialize masses equally
-  InitPosVel(n, p, v);
+  InitPosVel(n, p, v, seed);
 
   // Translate bodies to move the center of mass on center of the coordinate
   // system
@@ -201,14 +201,15 @@ __global__ void UpdatePosition(float4 *p, float4 *v, const float dt) {
 
 
 int main (int argc, char **argv) {
+  int seed = 0;
   if (argc < 2) {
     std::cerr << "Must specify the number of bodies" << std::endl;
     exit(1);
   }
   if (argc == 3)
-    srand(atoi(argv[2]));
+    seed = atoi(argv[2]);
   else  
-    srand(0);
+    srand(seed);
 
   int n = atoi(argv[1]);
   const float dt = 0.01f; 
@@ -222,14 +223,14 @@ int main (int argc, char **argv) {
   cudaMallocHost(&h_v, n * sizeof(float4));
 
   // Init Bodies
-  TIMERSTART(init)
-  InitBodies(n, h_p, h_v);
+  //TIMERSTART(init)
+  InitBodies(n, h_p, h_v, seed);
   {
   float ek = Ek(n, h_v);
   float ep = Ep(n, h_p);
   std::cout << "Etot: " <<ek+ep <<std::endl;
   }
-  TIMERSTOP(init)
+  //TIMERSTOP(init)
 
   // Allocate memory on the device
   float4 *d_p, *d_v;
@@ -246,26 +247,32 @@ int main (int argc, char **argv) {
     threadsPerBlock = dim3(MAX_THREADS_PER_BLOCK);
   }
 
-  TIMERSTART(total)
+  //TIMERSTART(total)
   cudaMemcpy(d_p, h_p, n * sizeof(float4), cudaMemcpyHostToDevice);
   cudaMemcpy(d_v, h_v, n * sizeof(float4), cudaMemcpyHostToDevice);
   
-  TIMERSTART(simulation)
-  for (float t = 0; t < 0.1; t+= dt) {
+  //TIMERSTART(simulation)
+  for (float t = 0; t < 100; t+= dt) {
     ComputeInteractions<<<blocks, threadsPerBlock>>>(n, d_p, d_v, dt );
     UpdatePosition<<<blocks, threadsPerBlock>>>(d_p, d_v, dt);
+    cudaMemcpy(h_p, d_p, n * sizeof(float4), cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_v, d_v, n * sizeof(float4), cudaMemcpyDeviceToHost);
+    {
+      float ek = Ek(n, h_v);
+      float ep = Ep(n, h_p);
+      std::cout << "Etot: " <<ek+ep <<std::endl;
+    }
   }
   cudaDeviceSynchronize();
-  TIMERSTOP(simulation)
+  //TIMERSTOP(simulation)
 
-  cudaMemcpy(h_p, d_p, n * sizeof(float4), cudaMemcpyDeviceToHost);
-  
-  cudaMemcpy(h_v, d_v, n * sizeof(float4), cudaMemcpyDeviceToHost);
-  TIMERSTOP(total)
+  //cudaMemcpy(h_p, d_p, n * sizeof(float4), cudaMemcpyDeviceToHost);
+  //cudaMemcpy(h_v, d_v, n * sizeof(float4), cudaMemcpyDeviceToHost);
+  //TIMERSTOP(total)
 
-  float ek = Ek(n, h_v);
-  float ep = Ep(n, h_p);
-  std::cout << "Etot: " <<ek+ep <<std::endl;
+  //float ek = Ek(n, h_v);
+  //float ep = Ep(n, h_p);
+  //std::cout << "Etot: " <<ek+ep <<std::endl;
   
   // Free pinned memory
   cudaFreeHost(h_p);

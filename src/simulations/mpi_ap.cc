@@ -377,7 +377,7 @@ void MPIAPSimulateV3(int n, T dt, T tEnd, int seed) {
 
   if (my_rank == 0)
     // Init Bodies
-    InitAos<T>(n, m, p, v, a, seed);
+    InitAos<T>(n, m, p, v, seed, a);
 
   TIMERSTART(simulation)
   TIMERSTART(broadcast)
@@ -441,7 +441,7 @@ int main(int argc, char **argv) {
 #ifndef OMP
   srand(atoi(argv[2]));
 #endif
-  MPIAPSimulateV2<MY_T>(atoi(argv[1]), 0.01, 10, atoi(argv[2]));
+  MPIAPSimulateV3<MY_T>(atoi(argv[1]), 0.01, 1, atoi(argv[2]));
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
 }
