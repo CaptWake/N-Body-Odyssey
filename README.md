@@ -1,4 +1,4 @@
-# N-Body Simulation Experimentation Project
+# N-Body Odyssey: Algorithms and Technologies
 
 This project explores N-Body simulations using different algorithms and technologies to study their performance characteristics. It includes implementations of All-Pairs ($\mathcal{O}(n^2)$) and Barnes-Hut ($\mathcal{O}(n \ log\ n)$) algorithms, leveraging various technologies such as OpenMP, OpenMPI, Rust, CUDA, and AVX.
 
