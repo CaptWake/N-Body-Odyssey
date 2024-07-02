@@ -14,6 +14,7 @@
 #endif
 
 #include <stdlib.h>
+
 #include <random>
 #include <string>
 #ifdef OMP
@@ -37,7 +38,7 @@ static inline T fdrand() {
 template <typename T>
 T inline Ep(int n, T *m, T *p) {
   T Epot = 0.0;
-#pragma omp parallel for reduction(+:Epot)
+#pragma omp parallel for reduction(+ : Epot)
   for (int i = 0; i < n; ++i) {
     for (int j = i + 1; j < n; ++j) {
       T D, x, y, z;
@@ -54,9 +55,9 @@ T inline Ep(int n, T *m, T *p) {
 template <typename T>
 T inline Ek(int n, T *m, T *v) {
   T Ekin = 0.0;
-#pragma omp parallel for reduction(+:Ekin)
+#pragma omp parallel for reduction(+ : Ekin)
   for (int i = 0; i < n; ++i) {
-    Ekin += 0.5* m[i] *
+    Ekin += 0.5 * m[i] *
             (v[3 * i] * v[3 * i] + v[3 * i + 1] * v[3 * i + 1] +
              v[3 * i + 2] * v[3 * i + 2]);
   }
@@ -65,7 +66,7 @@ T inline Ek(int n, T *m, T *v) {
 
 template <typename T>
 static inline void scale3NArray(int n, T *m, T scale) {
-#pragma omp parallel for 
+#pragma omp parallel for
   for (int i = 0; i < 3 * n; ++i) {
     m[i] *= scale;
   }
@@ -75,7 +76,7 @@ template <typename T>
 void InitMassU(int n, T *m) {
   T mi = _M / n;
 
-#pragma omp parallel for 
+#pragma omp parallel for
   for (int i = 0; i < n; ++i) {
     m[i] = mi;
   }
@@ -86,12 +87,12 @@ void InitPosU(int n, T *p, int seed = 0) {
 #pragma omp parallel
   {
 #ifdef OMP
-    unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();	 
-    auto myrand = [&](){return (double)rand_r(&seedT) / (double) RAND_MAX;};
+    unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();
+    auto myrand = [&]() { return (double)rand_r(&seedT) / (double)RAND_MAX; };
 #else
-    auto myrand = [](){return fdrand<T>();};
+    auto myrand = []() { return fdrand<T>(); };
 #endif
-    #pragma omp for
+#pragma omp for
     for (int i = 0; i < n; ++i) {
       T R, X, Y;
       R = myrand();
@@ -111,12 +112,12 @@ void InitVelU(int n, T *v, int seed = 0) {
 #pragma omp parallel
   {
 #ifdef OMP
-    unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();	 
-    auto myrand = [&](){return (double)rand_r(&seedT) / (double) RAND_MAX;};
+    unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();
+    auto myrand = [&]() { return (double)rand_r(&seedT) / (double)RAND_MAX; };
 #else
-    auto myrand = [](){return fdrand<T>();};
+    auto myrand = []() { return fdrand<T>(); };
 #endif
-    #pragma omp for
+#pragma omp for
     for (int i = 0; i < n; ++i) {
       v[3 * i] = (1.0 - 2.0 * myrand());
       v[3 * i + 1] = (1.0 - 2.0 * myrand());
@@ -127,7 +128,7 @@ void InitVelU(int n, T *v, int seed = 0) {
 
 template <typename T>
 void InitAccU(int n, T *a) {
-  #pragma omp for
+#pragma omp for
   for (int i = 0; i < n; ++i) {
     a[3 * i] = 0.0;
     a[3 * i + 1] = 0.0;
@@ -141,7 +142,7 @@ void Move2Center(int n, T *m, T *p, T *v) {
   T vx = 0.0, vy = 0.0, vz = 0.0;
   T mi;
 
-#pragma omp parallel for reduction(+:px,py,pz,vx,vy,vz)
+#pragma omp parallel for reduction(+ : px, py, pz, vx, vy, vz)
   for (int i = 0; i < n; ++i) {
     mi = m[i];
     px += p[3 * i] * mi;
@@ -187,7 +188,7 @@ void RescaleEnergy(int n, T *m, T *p, T *v) {
   // After first scale Ekin is -0.5Epot but E0 != -0.25.
   // So just scale up or down as needed.
   Epot = Ep<T>(n, m, p);
-  beta = Epot / - 0.5f;
+  beta = Epot / -0.5f;
   scale3NArray<T>(n, p, beta);
   scale3NArray<T>(n, v, 1.0 / sqrt(beta));
 }
@@ -226,10 +227,9 @@ static inline void scaleArray(int n, T *m, T scale) {
 }
 
 template <typename T>
-float inline EpSoa(int n, const T *m, const T *px, const T *py,
-                   const T *pz) {
+float inline EpSoa(int n, const T *m, const T *px, const T *py, const T *pz) {
   T Epot = 0.0;
-#pragma omp parallel for reduction(+:Epot)
+#pragma omp parallel for reduction(+ : Epot)
   for (int i = 0; i < n; ++i) {
     for (int j = i + 1; j < n; ++j) {
       T D, x, y, z;
@@ -244,10 +244,9 @@ float inline EpSoa(int n, const T *m, const T *px, const T *py,
 }
 
 template <typename T>
-float inline EkSoa(int n, const T *m, const T *vx, const T *vy,
-                   const T *vz) {
+float inline EkSoa(int n, const T *m, const T *vx, const T *vy, const T *vz) {
   T Ekin = 0.0;
-#pragma omp parallel for reduction(+:Ekin)
+#pragma omp parallel for reduction(+ : Ekin)
   for (int i = 0; i < n; ++i) {
     Ekin += 0.5 * m[i] * (vx[i] * vx[i] + vy[i] * vy[i] + vz[i] * vz[i]);
   }
@@ -259,12 +258,12 @@ void InitPosUSoa(int n, T *px, T *py, T *pz, int seed = 0) {
 #pragma omp parallel
   {
 #ifdef OMP
-    unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();	 
-    auto myrand = [&](){return (double)rand_r(&seedT) / (double) RAND_MAX;};
+    unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();
+    auto myrand = [&]() { return (double)rand_r(&seedT) / (double)RAND_MAX; };
 #else
-    auto myrand = [](){return fdrand<T>();};
+    auto myrand = []() { return fdrand<T>(); };
 #endif
-    #pragma omp for
+#pragma omp for
     for (int i = 0; i < n; ++i) {
       T R, X, Y;
       R = myrand();
@@ -284,12 +283,12 @@ void InitVelUSoa(int n, T *vx, T *vy, T *vz, int seed = 0) {
 #pragma omp parallel
   {
 #ifdef OMP
-    unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();	 
-    auto myrand = [&](){return (double)rand_r(&seedT) / (double) RAND_MAX;};
+    unsigned int seedT = omp_get_thread_num() + seed * omp_get_num_threads();
+    auto myrand = [&]() { return (double)rand_r(&seedT) / (double)RAND_MAX; };
 #else
-    auto myrand = [](){return fdrand<T>();};
+    auto myrand = []() { return fdrand<T>(); };
 #endif
-    #pragma omp for
+#pragma omp for
     for (int i = 0; i < n; ++i) {
       vx[i] = (1.0 - 2.0 * myrand());
       vy[i] = (1.0 - 2.0 * myrand());
@@ -309,13 +308,12 @@ void InitAccUSoa(int n, T *ax, T *ay, T *az) {
 }
 
 template <typename T>
-void Move2CenterSoa(int n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
-                    T *vz) {
+void Move2CenterSoa(int n, T *m, T *px, T *py, T *pz, T *vx, T *vy, T *vz) {
   T ppx = 0.0, ppy = 0.0, ppz = 0.0;
   T vvx = 0.0, vvy = 0.0, vvz = 0.0;
   T mi;
 
-#pragma omp parallel for reduction(+:ppx,ppy,ppz,vvx,vvy,vvz)
+#pragma omp parallel for reduction(+ : ppx, ppy, ppz, vvx, vvy, vvz)
   for (int i = 0; i < n; ++i) {
     mi = m[i];
     ppx += px[i] * mi;
@@ -346,8 +344,7 @@ void Move2CenterSoa(int n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
 }
 
 template <typename T>
-void RescaleEnergySoa(int n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
-                      T *vz) {
+void RescaleEnergySoa(int n, T *m, T *px, T *py, T *pz, T *vx, T *vy, T *vz) {
   // Aarseth, 2003, Algorithm 7.2.
   T Epot = EpSoa<T>(n, m, px, py, pz);
   T Ekin = EkSoa<T>(n, m, vx, vy, vz);
@@ -378,7 +375,8 @@ void RescaleEnergySoa(int n, T *m, T *px, T *py, T *pz, T *vx, T *vy,
 }
 
 template <typename T>
-void InitSoa(const int n, T *m, T *px, T *py, T *pz, T *vx, T *vy, T *vz, int seed = 0) {
+void InitSoa(const int n, T *m, T *px, T *py, T *pz, T *vx, T *vy, T *vz,
+             int seed = 0) {
   // Initialize masses equally
   InitMassU<T>(n, m);
 

@@ -9,7 +9,7 @@
 
 /**
  * @brief Computes the force on a body using all other bodies.
- * 
+ *
  * @tparam T Floating-point type (float or double).
  * @param n Total number of bodies.
  * @param i Index of the body for which the force is computed.
@@ -39,7 +39,7 @@ void computeForce(int n, int i, const T *m, const T *p, T *a) {
     ai[1] += m[j] * dy * D;
     ai[2] += m[j] * dz * D;
   }
-  
+
   for (int j = i + 1; j < n; ++j) {
     dx = p[3 * j] - px;
     dy = p[3 * j + 1] - py;
@@ -54,8 +54,9 @@ void computeForce(int n, int i, const T *m, const T *p, T *a) {
 }
 
 /**
- * @brief Updates positions and velocities of bodies using the Sequential All-Pairs method.
- * 
+ * @brief Updates positions and velocities of bodies using the Sequential
+ * All-Pairs method.
+ *
  * @tparam T Floating-point type (float or double).
  * @param n Total number of bodies.
  * @param m Array of masses.
@@ -98,7 +99,7 @@ void SequentialAPUpdate(const int n, T *m, T *p, T *v, const T dt) {
 
 /**
  * @brief Simulates the n-body problem using a basic Euler integration method.
- * 
+ *
  * @tparam T Floating-point type (float or double).
  * @param n Total number of bodies.
  * @param dt Time step for the simulation.
@@ -144,8 +145,9 @@ void SequentialAPSimulateV1(int n, T dt, T tEnd, int seed) {
 }
 
 /**
- * @brief Simulates the n-body problem using a kick-drift-kick integration method.
- * 
+ * @brief Simulates the n-body problem using a kick-drift-kick integration
+ * method.
+ *
  * @tparam T Floating-point type (float or double).
  * @param n Total number of bodies.
  * @param dt Time step for the simulation.
@@ -202,8 +204,7 @@ int main(int argc, char **argv) {
   }
   int nbody = atoi(argv[1]);
   int seed = 0;
-  if (argc == 3)
-    seed = atoi(argv[2]);
+  if (argc == 3) seed = atoi(argv[2]);
 #ifndef OMP
   srand(seed);
 #endif

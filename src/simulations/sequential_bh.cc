@@ -1,4 +1,5 @@
 #include "simulations/sequential_bh.h"
+
 #include "utilities/octree.h"
 #include "utilities/time_utils.h"
 
@@ -39,7 +40,7 @@ float Ek(uint64_t n, const float *m, const vec3 *v) {
 
 void SequentialBHSimulate(uint64_t n, float theta, float dt, float tEnd) {
   auto simulation = SequentialBH(n, theta);
-  for (float t = 0; t < tEnd; t+=dt) {
+  for (float t = 0; t < tEnd; t += dt) {
     simulation.Update(dt);
     auto ek = Ek(n, simulation.m.data(), simulation.v.data());
     auto ep = Ep(n, simulation.m.data(), simulation.p.data());

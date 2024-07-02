@@ -24,8 +24,9 @@ TIMERINIT(receive)
 
 #ifdef FLOAT
 /**
- * @brief Update the positions and velocities of the bodies using AVX instructions (single precision).
- * 
+ * @brief Update the positions and velocities of the bodies using AVX
+ * instructions (single precision).
+ *
  * @param n Total number of bodies.
  * @param localN Number of bodies assigned to the local process.
  * @param m Array of masses.
@@ -56,7 +57,8 @@ void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px,
     __m256 Fy = _mm256_set1_ps(0.0f);
     __m256 Fz = _mm256_set1_ps(0.0f);
 
-    for (int j = 0; j < n; j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
+    for (int j = 0; j < n;
+         j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
 
       const __m256 Xi = _mm256_broadcast_ss(px_ + i);
       const __m256 Yi = _mm256_broadcast_ss(py_ + i);
@@ -118,8 +120,9 @@ void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px,
 #else
 
 /**
- * @brief Update the positions and velocities of the bodies using AVX instructions (double precision).
- * 
+ * @brief Update the positions and velocities of the bodies using AVX
+ * instructions (double precision).
+ *
  * @param n Total number of bodies.
  * @param localN Number of bodies assigned to the local process.
  * @param m Array of masses.
@@ -151,7 +154,8 @@ void SequentialAPAVXUpdate(const int n, const int localN, double *m, double *px,
     __m256d Fy = _mm256_set1_pd(0.0);
     __m256d Fz = _mm256_set1_pd(0.0);
 
-    for (int j = 0; j < n; j += 4) {  // exploit the SIMD computing blocks of 8 pairs each time
+    for (int j = 0; j < n;
+         j += 4) {  // exploit the SIMD computing blocks of 8 pairs each time
 
       const __m256d Xi = _mm256_broadcast_sd(px_ + i);
       const __m256d Yi = _mm256_broadcast_sd(py_ + i);
@@ -215,7 +219,7 @@ void SequentialAPAVXUpdate(const int n, const int localN, double *m, double *px,
 
 /**
  * @brief Simulates the n-body problem using MPI and AVX instructions.
- * 
+ *
  * @tparam T Floating point type (float or double).
  * @param n Total number of bodies.
  * @param dt Time step for the simulation.
@@ -290,9 +294,9 @@ void MPIAPSimulate(int n, T dt, T tEnd, int seed) {
         TIMERSTOP(receive)
       }
     } else {
-        TIMERSTART(send)
-        MPI_Send(pv_, 6 * localN, MPI_TYPE, 0, 0, MPI_COMM_WORLD);
-        TIMERSTOP(send)
+      TIMERSTART(send)
+      MPI_Send(pv_, 6 * localN, MPI_TYPE, 0, 0, MPI_COMM_WORLD);
+      TIMERSTOP(send)
     }
     TIMERSTART(broadcast)
     MPI_Bcast(pv, 6 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
@@ -318,18 +322,18 @@ void MPIAPSimulate(int n, T dt, T tEnd, int seed) {
 int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
   if (argc < 5) {
-    std::cerr << "Must specify the number of bodies, schedule type, chunk size, number of threads and seed (optional)"
+    std::cerr << "Must specify the number of bodies, schedule type, chunk "
+                 "size, number of threads and seed (optional)"
               << std::endl;
     exit(1);
   }
   int nbody = atoi(argv[1]);
-  char* scheduleType = argv[2];
-  int blockSize = atoi(argv[3]); 
+  char *scheduleType = argv[2];
+  int blockSize = atoi(argv[3]);
   int numThread = atoi(argv[4]);
   int seed = 0;
 
-  if (argc == 6)
-    seed = atoi(argv[5]);
+  if (argc == 6) seed = atoi(argv[5]);
 
   omp_set_schedule(scheduleType, blockSize);
   SetNumThread(numThread);

@@ -1,12 +1,14 @@
 #include "simulations/mpi_ap.h"
-#include "utilities/integrators.h"
-#include "utilities/nbody_helpers.h"
-#include "utilities/time_utils.h"
+
+#include <mpi.h>
+#include <omp.h>
 
 #include <cstring>
 #include <iostream>
-#include <mpi.h>
-#include <omp.h>
+
+#include "utilities/integrators.h"
+#include "utilities/nbody_helpers.h"
+#include "utilities/time_utils.h"
 
 #ifdef DOUBLE
 #define MPI_TYPE MPI_DOUBLE
@@ -26,15 +28,17 @@ TIMERINIT(init)
 
 /**
  * Updates the acceleration of particles using the MPI All-Pairs algorithm.
- * 
+ *
  * @tparam T The data type of the particles' properties.
  * @param localN The number of particles in the local process.
  * @param n The total number of particles.
  * @param m An array of masses of the particles.
  * @param p An array of positions of the particles.
  * @param a An array to store the accelerations of the particles.
- * @param m_rec An array to receive the masses of particles from other processes.
- * @param p_rec An array to receive the positions of particles from other processes.
+ * @param m_rec An array to receive the masses of particles from other
+ * processes.
+ * @param p_rec An array to receive the positions of particles from other
+ * processes.
  */
 template <typename T>
 void MPIAPUpdate(int localN, int n, const T *__restrict__ m,
@@ -139,7 +143,7 @@ void MPIAPUpdate(int localN, int n, const T *__restrict__ m,
 
 /**
  * Performs a single step of the N-body simulation.
- * 
+ *
  * @tparam T The data type of the arrays.
  * @param localN The number of particles in the local process.
  * @param m The array of masses.
@@ -195,7 +199,7 @@ static inline void performNBodyStep(const int localN, T *m, T *p, T *v,
 
 /**
  * Simulates the n-body problem using the MPI parallelization framework.
- * 
+ *
  * @tparam T The data type for the simulation variables.
  * @param n The total number of bodies in the simulation.
  * @param dt The time step for the simulation.
@@ -284,7 +288,7 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd) {
 
 /**
  * Simulates the N-body problem using the MPI library.
- * 
+ *
  * @tparam T The data type for the simulation.
  * @param n The number of bodies in the simulation.
  * @param dt The time step for the simulation.
@@ -304,13 +308,13 @@ void MPIAPSimulateV2(int n, T dt, T tEnd, int seed) {
   T *p = new T[3 * n];
   T *v = new T[3 * n];
 
-  if (my_rank == 0){
+  if (my_rank == 0) {
     // Init Bodies
     TIMERSTART(init)
     InitAos<T>(n, m, p, v, seed);
     TIMERSTOP(init)
     TIMERPRINT(init)
-   }
+  }
 
   MPI_Request *requests = (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
 
@@ -360,7 +364,7 @@ void MPIAPSimulateV2(int n, T dt, T tEnd, int seed) {
                 it,
                 MPI_COMM_WORLD,
                 &requests[i]);
-       TIMERSTOP(waitany)
+      TIMERSTOP(waitany)
     }
     performNBodyStep<T>(localN, m, p, v, requests, dt);
     ++it;
@@ -399,7 +403,7 @@ void MPIAPSimulateV2(int n, T dt, T tEnd, int seed) {
 
 /**
  * Simulates the MPIAP system using the Verlet integration method.
- * 
+ *
  * @tparam T The data type of the simulation variables.
  * @param n The number of bodies in the system.
  * @param dt The time step size.
@@ -455,7 +459,6 @@ void MPIAPSimulateV3(int n, T dt, T tEnd, int seed) {
     MPI_Allgather(
         v_, 3 * localN, MPI_TYPE, v, 3 * localN, MPI_TYPE, MPI_COMM_WORLD);
     TIMERSTOP(allgather)
-
   }
   TIMERSTOP(simulation)
 
@@ -488,8 +491,7 @@ int main(int argc, char **argv) {
   }
   int nbody = atoi(argv[1]);
   int seed = 0;
-  if (argc == 3)
-    seed = atoi(argv[2]);
+  if (argc == 3) seed = atoi(argv[2]);
 #ifndef OMP
   srand(seed);
 #endif

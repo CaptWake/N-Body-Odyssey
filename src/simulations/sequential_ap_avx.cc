@@ -1,6 +1,7 @@
 #include "simulations/sequential_ap_avx.h"
 
 #include <iostream>
+
 #include "utilities/avx.h"
 #include "utilities/nbody_helpers.h"
 #include "utilities/time_utils.h"
@@ -9,8 +10,9 @@
 
 #ifdef FLOAT
 /**
- * @brief Update the positions and velocities of bodies using AVX for float precision.
- * 
+ * @brief Update the positions and velocities of bodies using AVX for float
+ * precision.
+ *
  * @param n Number of bodies.
  * @param m Array of masses.
  * @param px Array of x positions.
@@ -32,7 +34,8 @@ void SequentialAPAVXUpdate(const int n, float *m, float *px, float *py,
     __m256 Fy = _mm256_set1_ps(0.0f);
     __m256 Fz = _mm256_set1_ps(0.0f);
 
-    for (int j = 0; j < n; j += 8) {  // exploit SIMD computing blocks of 8 pairs each time
+    for (int j = 0; j < n;
+         j += 8) {  // exploit SIMD computing blocks of 8 pairs each time
       const __m256 Xi = _mm256_broadcast_ss(px + i);
       const __m256 Yi = _mm256_broadcast_ss(py + i);
       const __m256 Zi = _mm256_broadcast_ss(pz + i);
@@ -47,7 +50,10 @@ void SequentialAPAVXUpdate(const int n, float *m, float *px, float *py,
 
       __m256 M = _mm256_loadu_ps(m + j);
 
-      const __m256 D = _mm256_fmadd_ps(X, X, _mm256_fmadd_ps(Y, Y, _mm256_fmadd_ps(Z, Z, _mm256_mul_ps(s, s))));
+      const __m256 D = _mm256_fmadd_ps(
+          X,
+          X,
+          _mm256_fmadd_ps(Y, Y, _mm256_fmadd_ps(Z, Z, _mm256_mul_ps(s, s))));
       const __m256 D_inv = _mm256_rsqrt_ps(D);
       const __m256 D_inv3 = _mm256_mul_ps(D_inv, _mm256_mul_ps(D_inv, D_inv));
 
@@ -83,8 +89,9 @@ void SequentialAPAVXUpdate(const int n, float *m, float *px, float *py,
 }
 #else
 /**
- * @brief Update the positions and velocities of bodies using AVX for double precision.
- * 
+ * @brief Update the positions and velocities of bodies using AVX for double
+ * precision.
+ *
  * @param n Number of bodies.
  * @param m Array of masses.
  * @param px Array of x positions.
@@ -106,7 +113,8 @@ void SequentialAPAVXUpdate(const int n, double *m, double *px, double *py,
     __m256d Fy = _mm256_set1_pd(0.0);
     __m256d Fz = _mm256_set1_pd(0.0);
 
-    for (int j = 0; j < n; j += 4) {  // exploit SIMD computing blocks of 4 pairs each time
+    for (int j = 0; j < n;
+         j += 4) {  // exploit SIMD computing blocks of 4 pairs each time
       const __m256d Xi = _mm256_broadcast_sd(px + i);
       const __m256d Yi = _mm256_broadcast_sd(py + i);
       const __m256d Zi = _mm256_broadcast_sd(pz + i);
@@ -121,7 +129,10 @@ void SequentialAPAVXUpdate(const int n, double *m, double *px, double *py,
 
       __m256d M = _mm256_loadu_pd(m + j);
 
-      const __m256d D = _mm256_fmadd_pd(X, X, _mm256_fmadd_pd(Y, Y, _mm256_fmadd_pd(Z, Z, _mm256_mul_pd(s, s))));
+      const __m256d D = _mm256_fmadd_pd(
+          X,
+          X,
+          _mm256_fmadd_pd(Y, Y, _mm256_fmadd_pd(Z, Z, _mm256_mul_pd(s, s))));
       const __m256d D_inv = fastinv(_mm256_sqrt_pd(D));
       const __m256d D_inv3 = _mm256_mul_pd(D_inv, _mm256_mul_pd(D_inv, D_inv));
 
@@ -159,7 +170,7 @@ void SequentialAPAVXUpdate(const int n, double *m, double *px, double *py,
 
 /**
  * @brief Simulate the n-body problem using AVX-optimized computations.
- * 
+ *
  * @tparam T Floating-point type (float or double).
  * @param n Number of bodies.
  * @param dt Time step for the simulation.
@@ -220,8 +231,7 @@ int main(int argc, char **argv) {
   }
   int nbody = atoi(argv[1]);
   int seed = 0;
-  if (argc == 3)
-    seed = atoi(argv[2]);
+  if (argc == 3) seed = atoi(argv[2]);
 #ifndef OMP
   srand(seed);
 #endif

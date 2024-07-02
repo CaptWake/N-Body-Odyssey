@@ -9,8 +9,9 @@
 #include "utilities/time_utils.h"
 
 /**
- * @brief Updates the positions and velocities of bodies using OpenMP parallelization.
- * 
+ * @brief Updates the positions and velocities of bodies using OpenMP
+ * parallelization.
+ *
  * @tparam T Floating point type (float or double).
  * @param n Total number of bodies.
  * @param m Array of masses.
@@ -55,7 +56,7 @@ void OMPAPUpdate(const int n, T *m, T *p, T *v, const T dt) {
 
 /**
  * @brief Simulates the n-body problem using OpenMP.
- * 
+ *
  * @tparam T Floating point type (float or double).
  * @param n Total number of bodies.
  * @param dt Time step for the simulation.
@@ -104,18 +105,18 @@ void OMPAPSimulate(int n, T dt, T tEnd, int seed) {
 
 int main(int argc, char **argv) {
   if (argc < 5) {
-    std::cerr << "Must specify the number of bodies, schedule type, chunk size, number of threads and seed (optional)"
+    std::cerr << "Must specify the number of bodies, schedule type, chunk "
+                 "size, number of threads and seed (optional)"
               << std::endl;
     exit(1);
   }
   int nbody = atoi(argv[1]);
-  char* scheduleType = argv[2];
-  int blockSize = atoi(argv[3]); 
+  char *scheduleType = argv[2];
+  int blockSize = atoi(argv[3]);
   int numThread = atoi(argv[4]);
   int seed = 0;
 
-  if (argc == 6)
-    seed = atoi(argv[5]);
+  if (argc == 6) seed = atoi(argv[5]);
 
   SetScheduleType(scheduleType, blockSize);
   SetNumThread(numThread);
