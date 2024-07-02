@@ -17,8 +17,32 @@
 #define MY_T float
 #endif
 
+TIMERINIT(broadcast)
+TIMERINIT(simulation)
+TIMERINIT(send)
+TIMERINIT(receive)
+
 #ifdef FLOAT
-// copyright NVIDIA
+/**
+ * @brief Update the positions and velocities of the bodies using AVX instructions (single precision).
+ * 
+ * @param n Total number of bodies.
+ * @param localN Number of bodies assigned to the local process.
+ * @param m Array of masses.
+ * @param px Array of x positions.
+ * @param px_ Array of x positions (output).
+ * @param py Array of y positions.
+ * @param py_ Array of y positions (output).
+ * @param pz Array of z positions.
+ * @param pz_ Array of z positions (output).
+ * @param vx Array of x velocities.
+ * @param vx_ Array of x velocities (output).
+ * @param vy Array of y velocities.
+ * @param vy_ Array of y velocities (output).
+ * @param vz Array of z velocities.
+ * @param vz_ Array of z velocities (output).
+ * @param dt Time step for the simulation.
+ */
 void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px,
                            float *px_, float *py, float *py_, float *pz,
                            float *pz_, float *vx, float *vx_, float *vy,
@@ -32,8 +56,7 @@ void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px,
     __m256 Fy = _mm256_set1_ps(0.0f);
     __m256 Fz = _mm256_set1_ps(0.0f);
 
-    for (int j = 0; j < n;
-         j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
+    for (int j = 0; j < n; j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
 
       const __m256 Xi = _mm256_broadcast_ss(px_ + i);
       const __m256 Yi = _mm256_broadcast_ss(py_ + i);
@@ -94,7 +117,26 @@ void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px,
 
 #else
 
-// copyright NVIDIA
+/**
+ * @brief Update the positions and velocities of the bodies using AVX instructions (double precision).
+ * 
+ * @param n Total number of bodies.
+ * @param localN Number of bodies assigned to the local process.
+ * @param m Array of masses.
+ * @param px Array of x positions.
+ * @param px_ Array of x positions (output).
+ * @param py Array of y positions.
+ * @param py_ Array of y positions (output).
+ * @param pz Array of z positions.
+ * @param pz_ Array of z positions (output).
+ * @param vx Array of x velocities.
+ * @param vx_ Array of x velocities (output).
+ * @param vy Array of y velocities.
+ * @param vy_ Array of y velocities (output).
+ * @param vz Array of z velocities.
+ * @param vz_ Array of z velocities (output).
+ * @param dt Time step for the simulation.
+ */
 void SequentialAPAVXUpdate(const int n, const int localN, double *m, double *px,
                            double *px_, double *py, double *py_, double *pz,
                            double *pz_, double *vx, double *vx_, double *vy,
@@ -109,8 +151,7 @@ void SequentialAPAVXUpdate(const int n, const int localN, double *m, double *px,
     __m256d Fy = _mm256_set1_pd(0.0);
     __m256d Fz = _mm256_set1_pd(0.0);
 
-    for (int j = 0; j < n;
-         j += 4) {  // exploit the SIMD computing blocks of 8 pairs each time
+    for (int j = 0; j < n; j += 4) {  // exploit the SIMD computing blocks of 8 pairs each time
 
       const __m256d Xi = _mm256_broadcast_sd(px_ + i);
       const __m256d Yi = _mm256_broadcast_sd(py_ + i);
@@ -171,8 +212,18 @@ void SequentialAPAVXUpdate(const int n, const int localN, double *m, double *px,
 }
 
 #endif
+
+/**
+ * @brief Simulates the n-body problem using MPI and AVX instructions.
+ * 
+ * @tparam T Floating point type (float or double).
+ * @param n Total number of bodies.
+ * @param dt Time step for the simulation.
+ * @param tEnd End time for the simulation.
+ * @param seed Random seed for initialization.
+ */
 template <typename T>
-void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
+void MPIAPSimulate(int n, T dt, T tEnd, int seed) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -190,10 +241,13 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
   if (my_rank == 0)
     // Init Bodies
     InitSoa<T>(
-        n, m, pv, pv + n, pv + 2 * n, pv + 3 * n, pv + 4 * n, pv + 5 * n);
+        n, m, pv, pv + n, pv + 2 * n, pv + 3 * n, pv + 4 * n, pv + 5 * n, seed);
 
+  TIMERSTART(simulation)
+  TIMERSTART(broadcast)
   MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Bcast(pv, 6 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
+  TIMERSTOP(broadcast)
 
   for (int i = 0; i < localN; ++i) {
     int idx = my_rank * localN + i;
@@ -205,7 +259,7 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
     pv_[i + 5 * localN] = pv[idx + 5 * n];
   }
 
-  // Simulation Loopp
+  // Simulation Loop
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     SequentialAPAVXUpdate(n,
@@ -229,14 +283,29 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
       for (int i = 0; i < 6; i++)
         memcpy(&pv[i * n], &pv_[i * localN], localN * sizeof(T));
 
-      for (int i = 1; i < nproc; i++)
+      for (int i = 1; i < nproc; i++) {
+        TIMERSTART(receive)
         MPI_Recv(
             &pv[i * localN], 1, block, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        TIMERSTOP(receive)
+      }
     } else {
-      MPI_Send(pv_, 6 * localN, MPI_TYPE, 0, 0, MPI_COMM_WORLD);
+        TIMERSTART(send)
+        MPI_Send(pv_, 6 * localN, MPI_TYPE, 0, 0, MPI_COMM_WORLD);
+        TIMERSTOP(send)
     }
+    TIMERSTART(broadcast)
     MPI_Bcast(pv, 6 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
+    TIMERSTOP(broadcast)
   }
+  TIMERSTOP(simulation)
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  TIMERPRINT(broadcast)
+  TIMERPRINT(simulation)
+  TIMERPRINT(send)
+  TIMERPRINT(receive)
+
   if (my_rank == 0) {
     T ek = EkSoa<T>(n, m, pv + 3 * n, pv + 4 * n, pv + 5 * n);
     T ep = EpSoa<T>(n, m, pv, pv + n, pv + 2 * n);
@@ -245,19 +314,27 @@ void MPIAPSimulate(uint64_t n, T dt, T tEnd, uint64_t seed) {
   MPI_Type_free(&block);  // Free the datatype when done
 }
 
+// nbody, num thread, seed
 int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
-  if (argc < 2) {
-    std::cerr << "Must specify the number of bodies" << std::endl;
+  if (argc < 5) {
+    std::cerr << "Must specify the number of bodies, schedule type, chunk size, number of threads and seed (optional)"
+              << std::endl;
     exit(1);
   }
-  srand(0);
-  SetScheduleType(argv[2], atoi(argv[3]));
-  SetNumThread(atoi(argv[4]));
-  TIMERSTART(simulation)
-  MPIAPSimulate<MY_T>(std::stoul(argv[1]), 0.01, 1, 0);
+  int nbody = atoi(argv[1]);
+  char* scheduleType = argv[2];
+  int blockSize = atoi(argv[3]); 
+  int numThread = atoi(argv[4]);
+  int seed = 0;
+
+  if (argc == 6)
+    seed = atoi(argv[5]);
+
+  omp_set_schedule(scheduleType, blockSize);
+  SetNumThread(numThread);
+  MPIAPSimulate<MY_T>(nbody, 0.01, 1, seed);
   MPI_Barrier(MPI_COMM_WORLD);
-  TIMERSTOP(simulation)
   MPI_Finalize();
   // mpi_ap(12, 1.0f);
 }
