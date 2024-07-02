@@ -6,6 +6,11 @@
 
 #define MAX_THREADS_PER_BLOCK 1024
 
+/**
+ * Sets the CUDA device based on the provided device name.
+ *
+ * @param deviceName The name of the device to set.
+ */
 void setDeviceByName(const char* deviceName) {
   int deviceCount;
   cudaGetDeviceCount(&deviceCount);
@@ -36,6 +41,15 @@ float inline xoxyi_rand(unsigned int *seed){
   return (float)rand_r(seed) / (float) RAND_MAX;
 }
 
+/**
+ * Calculates the potential energy (Epot) of a system of particles using the Lennard-Jones potential.
+ *
+ * @param n The number of particles in the system.
+ * @param p Pointer to an array of float4 structures representing the particles.
+ *           Each float4 structure contains the x, y, z coordinates of a particle (p[i].x, p[i].y, p[i].z)
+ *           and the weight of the particle (p[i].w).
+ * @return The total potential energy of the system.
+ */
 float inline Ep(const int n, float4 *p) {
   float Epot = 0.0f;
 #pragma omp parallel for reduction(+:Epot)
@@ -52,6 +66,14 @@ float inline Ep(const int n, float4 *p) {
   return Epot;
 }
 
+/**
+ * Calculates the kinetic energy of a system of particles.
+ *
+ * @param n The number of particles in the system.
+ * @param v Pointer to an array of float4 structures representing the particles' properties.
+ *          Each float4 structure contains the particle's position (x, y, z) and mass (w).
+ * @return The total kinetic energy of the system.
+ */
 float inline Ek(const int n, float4 *v) {
   float Ekin = 0.0;
 #pragma omp parallel for reduction(+:Ekin)
@@ -61,6 +83,13 @@ float inline Ek(const int n, float4 *v) {
   return Ekin;
 }
 
+/**
+ * Scales a 4D array of float4 elements by a given scale factor.
+ *
+ * @param n     The number of elements in the array.
+ * @param m     The array of float4 elements to be scaled.
+ * @param scale The scale factor to multiply each element by.
+ */
 static inline void scale4DArray(const int n, float4 *m, const float scale) {
 #pragma omp parallel for
   for (int i = 0; i < n; ++i) {
@@ -70,6 +99,17 @@ static inline void scale4DArray(const int n, float4 *m, const float scale) {
   }
 }
 
+/**
+ * @brief Initializes the position and velocity arrays for a given number of particles.
+ *
+ * This function initializes the position and velocity arrays for a given number of particles.
+ * It uses OpenMP parallelization to distribute the work among multiple threads.
+ *
+ * @param n The number of particles.
+ * @param p Pointer to the position array.
+ * @param v Pointer to the velocity array.
+ * @param seed The seed value for the random number generator.
+ */
 void InitPosVel(const int n, float4 *p, float4 *v, int seed) {
 #pragma omp parallel
  { 
@@ -88,6 +128,13 @@ void InitPosVel(const int n, float4 *p, float4 *v, int seed) {
   }
 }
 
+/**
+ * Moves the particles to the center of the simulation space and adjusts their velocities accordingly.
+ *
+ * @param n The number of particles.
+ * @param p Pointer to an array of float4 structures representing the positions of the particles.
+ * @param v Pointer to an array of float4 structures representing the velocities of the particles.
+ */
 void Move2Center(const int n, float4 *p, float4 *v) {
   float3 pp = make_float3(0.0f, 0.0f, 0.0f);
   float3 vv = make_float3(0.0f, 0.0f, 0.0f);
@@ -135,6 +182,17 @@ void Move2Center(const int n, float4 *p, float4 *v) {
   }
 }
 
+/**
+ * Rescales the energy of the particles in the simulation.
+ *
+ * This function implements the rescaling of energy described in Aarseth, 2003, Algorithm 7.2.
+ * It rescales the potential energy and kinetic energy of the particles based on a given virial ratio.
+ * The rescaling is performed on the position and velocity arrays.
+ *
+ * @param n The number of particles in the simulation.
+ * @param p The array of particle positions.
+ * @param v The array of particle velocities.
+ */
 void RescaleEnergy(const int n, float4 *p, float4 *v) {
   // Aarseth, 2003, Algorithm 7.2.
   float Epot = Ep(n, p);
@@ -155,6 +213,14 @@ void RescaleEnergy(const int n, float4 *p, float4 *v) {
   scale4DArray(n, v, 1.0f / sqrtf(beta));
 }
 
+/**
+ * Initializes the bodies for the simulation.
+ *
+ * @param n     The number of bodies.
+ * @param p     Pointer to the array of body positions.
+ * @param v     Pointer to the array of body velocities.
+ * @param seed  The seed for the random number generator (default is 0).
+ */
 void InitBodies(const int n, float4 *p, float4 *v, int seed = 0) {
   // Initialize masses equally
   InitPosVel(n, p, v, seed);
@@ -167,6 +233,14 @@ void InitBodies(const int n, float4 *p, float4 *v, int seed = 0) {
   RescaleEnergy(n, p, v);
 }
 
+/**
+ * @brief Computes the interactions between particles using the N-body simulation algorithm.
+ *
+ * @param n The number of particles.
+ * @param p Pointer to the array of particle positions (x, y, z, w).
+ * @param v Pointer to the array of particle velocities (x, y, z).
+ * @param dt The time step.
+ */
 __global__ void ComputeInteractions(const int n, float4 *p, float4 *v, const float dt) {
   float fx = 0.0f;
   float fy = 0.0f;
@@ -192,6 +266,16 @@ __global__ void ComputeInteractions(const int n, float4 *p, float4 *v, const flo
   v[i].z += fz * dt;
 }
 
+/**
+ * @brief Updates the position of particles based on their velocity.
+ *
+ * This CUDA kernel function updates the position of particles in a simulation
+ * based on their velocity and a given time step.
+ *
+ * @param p Pointer to the array of particle positions.
+ * @param v Pointer to the array of particle velocities.
+ * @param dt The time step for the simulation.
+ */
 __global__ void UpdatePosition(float4 *p, float4 *v, const float dt) {
   auto i = blockDim.x * blockIdx.x + threadIdx.x;
   p[i].x += v[i].x * dt;

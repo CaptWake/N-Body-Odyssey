@@ -8,6 +8,11 @@
 #include <cstdlib> // Add this line to include the necessary header for exit
 #include <algorithm>
 
+/**
+ * Sets the CUDA device based on the provided device name.
+ *
+ * @param deviceName The name of the device to set.
+ */
 void setDeviceByName(const char* deviceName) {
   int deviceCount;
   cudaGetDeviceCount(&deviceCount);
@@ -38,6 +43,15 @@ double inline xoxyi_rand(unsigned int *seed){
   return (double)rand_r(seed) / (double) RAND_MAX;
 }
 
+/**
+ * Calculates the potential energy (Epot) of a system of particles using the Lennard-Jones potential.
+ *
+ * @param n The number of particles in the system.
+ * @param p Pointer to an array of double4 structures representing the particles.
+ *          Each double4 structure contains the x, y, z coordinates of a particle (p[i].x, p[i].y, p[i].z)
+ *          and the weight of the particle (p[i].w).
+ * @return The total potential energy of the system.
+ */
 double inline Ep(const int n, double4 *p) {
   double Epot = 0.0f;
 #pragma omp parallel for reduction(+:Epot)
@@ -54,6 +68,14 @@ double inline Ep(const int n, double4 *p) {
   return Epot;
 }
 
+/**
+ * Calculates the kinetic energy of a system of particles.
+ *
+ * @param n The number of particles in the system.
+ * @param v Pointer to an array of double4 structures representing the particles' properties.
+ *           Each double4 structure contains the particle's position (x, y, z) and mass (w).
+ * @return The total kinetic energy of the system.
+ */
 double inline Ek(const int n, double4 *v) {
   double Ekin = 0.0;
 #pragma omp parallel for reduction(+:Ekin)
@@ -63,6 +85,13 @@ double inline Ek(const int n, double4 *v) {
   return Ekin;
 }
 
+/**
+ * Scales a 4D array by a given scale factor.
+ *
+ * @param n     The size of the array.
+ * @param m     The 4D array to be scaled.
+ * @param scale The scale factor to multiply each element of the array by.
+ */
 static inline void scale4DArray(const int n, double4 *m, const double scale) {
 #pragma omp parallel for 
   for (int i = 0; i < n; ++i) {
@@ -72,6 +101,14 @@ static inline void scale4DArray(const int n, double4 *m, const double scale) {
   }
 }
 
+/**
+ * @brief Initializes the position and velocity arrays for a given number of particles.
+ * 
+ * @param n The number of particles.
+ * @param p Pointer to the position array.
+ * @param v Pointer to the velocity array.
+ * @param seed The seed value for the random number generator.
+ */
 void InitPosVel(const int n, double4 *p, double4 *v, int seed) {
 #pragma omp parallel
   {
@@ -90,6 +127,13 @@ void InitPosVel(const int n, double4 *p, double4 *v, int seed) {
   }
 }
 
+/**
+ * Moves the particles to the center of mass and subtracts the center of mass velocity from each particle.
+ *
+ * @param n The number of particles.
+ * @param p Pointer to an array of double4 structures representing the position of each particle.
+ * @param v Pointer to an array of double4 structures representing the velocity of each particle.
+ */
 void Move2Center(const int n, double4 *p, double4 *v) {
   double3 pp = make_double3(0.0f, 0.0f, 0.0f);
   double3 vv = make_double3(0.0f, 0.0f, 0.0f);
@@ -100,6 +144,8 @@ void Move2Center(const int n, double4 *p, double4 *v) {
   double vvy = 0;
   double vvz = 0;
   int i;
+
+  // Calculate the total position and velocity of all particles
 #pragma omp parallel for reduction(+:ppx,ppy,ppz,vvx,vvy,vvz)
   for (i = 0; i < n; ++i) {
     ppx += p[i].x * p[i].w;
@@ -110,6 +156,8 @@ void Move2Center(const int n, double4 *p, double4 *v) {
     vvy += v[i].y * v[i].w;
     vvz += v[i].z * v[i].w;
   }
+
+  // Calculate the center of mass position and velocity
   pp.x = ppx;
   pp.y = ppy;
   pp.z = ppz;
@@ -125,6 +173,7 @@ void Move2Center(const int n, double4 *p, double4 *v) {
   vv.y /= _M;
   vv.z /= _M;
 
+  // Move particles to the center of mass and subtract the center of mass velocity
 #pragma omp parallel for
   for (i = 0; i < n; ++i) {
     p[i].x -= pp.x;
@@ -136,6 +185,17 @@ void Move2Center(const int n, double4 *p, double4 *v) {
   }
 }
 
+/**
+ * Rescales the energy of the particles in the simulation.
+ *
+ * This function implements Algorithm 7.2 from Aarseth, 2003.
+ * It rescales the potential energy and kinetic energy of the particles
+ * to achieve a desired virial ratio and energy balance.
+ *
+ * @param n The number of particles.
+ * @param p Pointer to the array of position vectors.
+ * @param v Pointer to the array of velocity vectors.
+ */
 void RescaleEnergy(const int n, double4 *p, double4 *v) {
   // Aarseth, 2003, Algorithm 7.2.
   double Epot = Ep(n, p);
@@ -156,6 +216,14 @@ void RescaleEnergy(const int n, double4 *p, double4 *v) {
   scale4DArray(n, v, 1.0f / sqrt(beta));
 }
 
+/**
+ * Initializes the positions, velocities, and masses of the bodies.
+ *
+ * @param n The number of bodies.
+ * @param p Pointer to the array of body positions.
+ * @param v Pointer to the array of body velocities.
+ * @param seed The seed for the random number generator (default is 0).
+ */
 void InitBodies(const int n, double4 *p, double4 *v, int seed = 0) {
   // Initialize masses equally
   InitPosVel(n, p, v, seed);
@@ -168,6 +236,18 @@ void InitBodies(const int n, double4 *p, double4 *v, int seed = 0) {
   RescaleEnergy(n, p, v);
 }
 
+/**
+ * @brief Computes the interactions between particles using the Barnes-Hut algorithm.
+ *
+ * This CUDA kernel calculates the forces between particles in a simulation using the Barnes-Hut algorithm.
+ * It iterates over each particle and computes the forces between that particle and all other particles.
+ * The forces are then used to update the velocities of the particles.
+ *
+ * @param n The number of particles in the simulation.
+ * @param p Pointer to an array of double4 structures representing the positions and masses of the particles.
+ * @param v Pointer to an array of double4 structures representing the velocities of the particles.
+ * @param dt The time step for the simulation.
+ */
 __global__ void ComputeInteractions(const int n, double4 *p, double4 *v, const double dt) {
   double fx = 0.0f;
   double fy = 0.0f;
@@ -193,6 +273,15 @@ __global__ void ComputeInteractions(const int n, double4 *p, double4 *v, const d
   v[i].z += fz * dt;
 }
 
+/**
+ * @brief Updates the position of particles in a simulation.
+ *
+ * This CUDA kernel function updates the position of particles based on their velocity and the given time step.
+ *
+ * @param p - Pointer to an array of double4 structures representing the positions of particles.
+ * @param v - Pointer to an array of double4 structures representing the velocities of particles.
+ * @param dt - The time step used for the update.
+ */
 __global__ void UpdatePosition(double4 *p, double4 *v, const double dt) {
   auto i = blockDim.x * blockIdx.x + threadIdx.x;
   p[i].x += v[i].x * dt;
