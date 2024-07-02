@@ -23,7 +23,26 @@ TIMERINIT(send)
 TIMERINIT(receive)
 
 #ifdef FLOAT
-// copyright NVIDIA
+/**
+ * @brief Update the positions and velocities of the bodies using AVX instructions (single precision).
+ * 
+ * @param n Total number of bodies.
+ * @param localN Number of bodies assigned to the local process.
+ * @param m Array of masses.
+ * @param px Array of x positions.
+ * @param px_ Array of x positions (output).
+ * @param py Array of y positions.
+ * @param py_ Array of y positions (output).
+ * @param pz Array of z positions.
+ * @param pz_ Array of z positions (output).
+ * @param vx Array of x velocities.
+ * @param vx_ Array of x velocities (output).
+ * @param vy Array of y velocities.
+ * @param vy_ Array of y velocities (output).
+ * @param vz Array of z velocities.
+ * @param vz_ Array of z velocities (output).
+ * @param dt Time step for the simulation.
+ */
 void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px,
                            float *px_, float *py, float *py_, float *pz,
                            float *pz_, float *vx, float *vx_, float *vy,
@@ -37,8 +56,7 @@ void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px,
     __m256 Fy = _mm256_set1_ps(0.0f);
     __m256 Fz = _mm256_set1_ps(0.0f);
 
-    for (int j = 0; j < n;
-         j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
+    for (int j = 0; j < n; j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
 
       const __m256 Xi = _mm256_broadcast_ss(px_ + i);
       const __m256 Yi = _mm256_broadcast_ss(py_ + i);
@@ -99,7 +117,26 @@ void SequentialAPAVXUpdate(const int n, const int localN, float *m, float *px,
 
 #else
 
-// copyright NVIDIA
+/**
+ * @brief Update the positions and velocities of the bodies using AVX instructions (double precision).
+ * 
+ * @param n Total number of bodies.
+ * @param localN Number of bodies assigned to the local process.
+ * @param m Array of masses.
+ * @param px Array of x positions.
+ * @param px_ Array of x positions (output).
+ * @param py Array of y positions.
+ * @param py_ Array of y positions (output).
+ * @param pz Array of z positions.
+ * @param pz_ Array of z positions (output).
+ * @param vx Array of x velocities.
+ * @param vx_ Array of x velocities (output).
+ * @param vy Array of y velocities.
+ * @param vy_ Array of y velocities (output).
+ * @param vz Array of z velocities.
+ * @param vz_ Array of z velocities (output).
+ * @param dt Time step for the simulation.
+ */
 void SequentialAPAVXUpdate(const int n, const int localN, double *m, double *px,
                            double *px_, double *py, double *py_, double *pz,
                            double *pz_, double *vx, double *vx_, double *vy,
@@ -114,8 +151,7 @@ void SequentialAPAVXUpdate(const int n, const int localN, double *m, double *px,
     __m256d Fy = _mm256_set1_pd(0.0);
     __m256d Fz = _mm256_set1_pd(0.0);
 
-    for (int j = 0; j < n;
-         j += 4) {  // exploit the SIMD computing blocks of 8 pairs each time
+    for (int j = 0; j < n; j += 4) {  // exploit the SIMD computing blocks of 8 pairs each time
 
       const __m256d Xi = _mm256_broadcast_sd(px_ + i);
       const __m256d Yi = _mm256_broadcast_sd(py_ + i);
@@ -176,6 +212,16 @@ void SequentialAPAVXUpdate(const int n, const int localN, double *m, double *px,
 }
 
 #endif
+
+/**
+ * @brief Simulates the n-body problem using MPI and AVX instructions.
+ * 
+ * @tparam T Floating point type (float or double).
+ * @param n Total number of bodies.
+ * @param dt Time step for the simulation.
+ * @param tEnd End time for the simulation.
+ * @param seed Random seed for initialization.
+ */
 template <typename T>
 void MPIAPSimulate(int n, T dt, T tEnd, int seed) {
   int my_rank, nproc;

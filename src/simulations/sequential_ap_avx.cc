@@ -1,7 +1,6 @@
 #include "simulations/sequential_ap_avx.h"
 
 #include <iostream>
-
 #include "utilities/avx.h"
 #include "utilities/nbody_helpers.h"
 #include "utilities/time_utils.h"
@@ -9,6 +8,19 @@
 // copyright NVIDIA
 
 #ifdef FLOAT
+/**
+ * @brief Update the positions and velocities of bodies using AVX for float precision.
+ * 
+ * @param n Number of bodies.
+ * @param m Array of masses.
+ * @param px Array of x positions.
+ * @param py Array of y positions.
+ * @param pz Array of z positions.
+ * @param vx Array of x velocities.
+ * @param vy Array of y velocities.
+ * @param vz Array of z velocities.
+ * @param dt Time step for the simulation.
+ */
 void SequentialAPAVXUpdate(const int n, float *m, float *px, float *py,
                            float *pz, float *vx, float *vy, float *vz,
                            const float dt) {
@@ -20,9 +32,7 @@ void SequentialAPAVXUpdate(const int n, float *m, float *px, float *py,
     __m256 Fy = _mm256_set1_ps(0.0f);
     __m256 Fz = _mm256_set1_ps(0.0f);
 
-    for (int j = 0; j < n;
-         j += 8) {  // exploit the SIMD computing blocks of 8 pairs each time
-
+    for (int j = 0; j < n; j += 8) {  // exploit SIMD computing blocks of 8 pairs each time
       const __m256 Xi = _mm256_broadcast_ss(px + i);
       const __m256 Yi = _mm256_broadcast_ss(py + i);
       const __m256 Zi = _mm256_broadcast_ss(pz + i);
@@ -36,18 +46,10 @@ void SequentialAPAVXUpdate(const int n, float *m, float *px, float *py,
       const __m256 Z = _mm256_sub_ps(Zj, Zi);
 
       __m256 M = _mm256_loadu_ps(m + j);
-      // const __m256 mask =
-      //    _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
-      // M = _mm256_mul_ps(M, mask);
 
-      const __m256 D = _mm256_fmadd_ps(
-          X,
-          X,
-          _mm256_fmadd_ps(Y, Y, _mm256_fmadd_ps(Z, Z, _mm256_mul_ps(s, s))));
+      const __m256 D = _mm256_fmadd_ps(X, X, _mm256_fmadd_ps(Y, Y, _mm256_fmadd_ps(Z, Z, _mm256_mul_ps(s, s))));
       const __m256 D_inv = _mm256_rsqrt_ps(D);
-      const __m256 D_inv3 = _mm256_mul_ps(
-          D_inv,
-          _mm256_mul_ps(D_inv, D_inv));  // da scambiare con la riga precedente
+      const __m256 D_inv3 = _mm256_mul_ps(D_inv, _mm256_mul_ps(D_inv, D_inv));
 
       Fx = _mm256_fmadd_ps(D_inv3, _mm256_mul_ps(M, X), Fx);
       Fy = _mm256_fmadd_ps(D_inv3, _mm256_mul_ps(M, Y), Fy);
@@ -75,11 +77,24 @@ void SequentialAPAVXUpdate(const int n, float *m, float *px, float *py,
     const __m256 Zn = _mm256_fmadd_ps(Vz, DT, Z);
 
     _mm256_store_ps(px + i, Xn);
-    _mm256_store_ps(pz + i, Zn);
     _mm256_store_ps(py + i, Yn);
+    _mm256_store_ps(pz + i, Zn);
   }
 }
 #else
+/**
+ * @brief Update the positions and velocities of bodies using AVX for double precision.
+ * 
+ * @param n Number of bodies.
+ * @param m Array of masses.
+ * @param px Array of x positions.
+ * @param py Array of y positions.
+ * @param pz Array of z positions.
+ * @param vx Array of x velocities.
+ * @param vy Array of y velocities.
+ * @param vz Array of z velocities.
+ * @param dt Time step for the simulation.
+ */
 void SequentialAPAVXUpdate(const int n, double *m, double *px, double *py,
                            double *pz, double *vx, double *vy, double *vz,
                            const double dt) {
@@ -91,9 +106,7 @@ void SequentialAPAVXUpdate(const int n, double *m, double *px, double *py,
     __m256d Fy = _mm256_set1_pd(0.0);
     __m256d Fz = _mm256_set1_pd(0.0);
 
-    for (int j = 0; j < n;
-         j += 4) {  // exploit the SIMD computing blocks of 8 pairs each time
-
+    for (int j = 0; j < n; j += 4) {  // exploit SIMD computing blocks of 4 pairs each time
       const __m256d Xi = _mm256_broadcast_sd(px + i);
       const __m256d Yi = _mm256_broadcast_sd(py + i);
       const __m256d Zi = _mm256_broadcast_sd(pz + i);
@@ -107,19 +120,10 @@ void SequentialAPAVXUpdate(const int n, double *m, double *px, double *py,
       const __m256d Z = _mm256_sub_pd(Zj, Zi);
 
       __m256d M = _mm256_loadu_pd(m + j);
-      // const __m256 mask =
-      //    _mm256_set_ps(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f);
-      // M = _mm256_mul_ps(M, mask);
 
-      const __m256d D = _mm256_fmadd_pd(
-          X,
-          X,
-          _mm256_fmadd_pd(Y, Y, _mm256_fmadd_pd(Z, Z, _mm256_mul_pd(s, s))));
-      const __m256d D_sqrt = _mm256_sqrt_pd(D);
-      const __m256d D_inv = fastinv(D_sqrt);
-      const __m256d D_inv3 = _mm256_mul_pd(
-          D_inv,
-          _mm256_mul_pd(D_inv, D_inv));  // da scambiare con la riga precedente
+      const __m256d D = _mm256_fmadd_pd(X, X, _mm256_fmadd_pd(Y, Y, _mm256_fmadd_pd(Z, Z, _mm256_mul_pd(s, s))));
+      const __m256d D_inv = fastinv(_mm256_sqrt_pd(D));
+      const __m256d D_inv3 = _mm256_mul_pd(D_inv, _mm256_mul_pd(D_inv, D_inv));
 
       Fx = _mm256_fmadd_pd(D_inv3, _mm256_mul_pd(M, X), Fx);
       Fy = _mm256_fmadd_pd(D_inv3, _mm256_mul_pd(M, Y), Fy);
@@ -147,12 +151,21 @@ void SequentialAPAVXUpdate(const int n, double *m, double *px, double *py,
     const __m256d Zn = _mm256_fmadd_pd(Vz, DT, Z);
 
     _mm256_store_pd(px + i, Xn);
-    _mm256_store_pd(pz + i, Zn);
     _mm256_store_pd(py + i, Yn);
+    _mm256_store_pd(pz + i, Zn);
   }
 }
 #endif
 
+/**
+ * @brief Simulate the n-body problem using AVX-optimized computations.
+ * 
+ * @tparam T Floating-point type (float or double).
+ * @param n Number of bodies.
+ * @param dt Time step for the simulation.
+ * @param tEnd End time for the simulation.
+ * @param seed Random seed for initializing bodies.
+ */
 template <typename T>
 void SequentialAPAVXSimulate(int n, T dt, T tEnd, int seed) {
   T *m = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
@@ -163,7 +176,7 @@ void SequentialAPAVXSimulate(int n, T dt, T tEnd, int seed) {
   T *vy = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
   T *vz = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
 
-  // Init Bodies
+  // Initialize Bodies
   InitSoa<T>(n, m, px, py, pz, vx, vy, vz, seed);
 
 #ifdef MONITOR_ENERGY
@@ -189,6 +202,15 @@ void SequentialAPAVXSimulate(int n, T dt, T tEnd, int seed) {
   std::cout << "Etot: " << ek + ep << std::endl;
 #endif
   TIMERSTOP(simulation)
+
+  // Free allocated memory
+  _mm_free(m);
+  _mm_free(px);
+  _mm_free(py);
+  _mm_free(pz);
+  _mm_free(vx);
+  _mm_free(vy);
+  _mm_free(vz);
 }
 
 int main(int argc, char **argv) {
