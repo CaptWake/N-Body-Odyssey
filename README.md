@@ -28,7 +28,7 @@ The project utilizes several technologies to explore different aspects of N-Body
 
 ## Algorithms Implemented
 
-### All-Pairs Algorithm \(\mathcal{O}(n^2)\)
+### All-Pairs Algorithm `O(n^2)`
 
 - **Sequential Implementation**: Basic implementation without parallelism.
 - **OpenMP**: Parallel version using OpenMP directives to exploit multicore processors.
@@ -36,7 +36,7 @@ The project utilizes several technologies to explore different aspects of N-Body
 - **AVX**: Implementation leveraging AVX (Advanced Vector Extensions) for SIMD (Single Instruction, Multiple Data) acceleration.
 - **OpenMPI + OpenMP + AVX**: Hybrid implementation combining MPI for distributed computing, OpenMP for shared-memory parallelism within nodes, and AVX for SIMD acceleration.
 
-### Barnes-Hut Algorithm \(\mathcal{O}(n\ log \ n)\)
+### Barnes-Hut Algorithm `O(n log n)`
 
 - **Sequential Implementation**: Hierarchical algorithm for reducing computational complexity by approximating distant groups of particles as single entities.
 
