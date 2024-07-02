@@ -1,6 +1,6 @@
 # N-Body Odyssey: Algorithms and Technologies
 
-This project explores N-Body simulations using different algorithms and technologies to study their performance characteristics. It includes implementations of All-Pairs (`O(n^2)`) and Barnes-Hut (`O(n log n)`) algorithms, leveraging various technologies such as OpenMP, OpenMPI, Rust, CUDA, and AVX.
+This project explores N-Body simulations using different algorithms and technologies to study their performance characteristics. It includes implementations of All-Pairs and Barnes-Hut algorithms, leveraging various technologies such as OpenMP, OpenMPI, Rust, CUDA, and AVX.
 
 ## Project Structure
 
@@ -36,7 +36,7 @@ The project utilizes several technologies to explore different aspects of N-Body
 - **AVX**: Implementation leveraging AVX (Advanced Vector Extensions) for SIMD (Single Instruction, Multiple Data) acceleration.
 - **OpenMPI + OpenMP + AVX**: Hybrid implementation combining MPI for distributed computing, OpenMP for shared-memory parallelism within nodes, and AVX for SIMD acceleration.
 
-### Barnes-Hut Algorithm $\mathcal{O}(n\ log \ n)$
+### Barnes-Hut Algorithm \(\mathcal{O}(n\ log \ n)\)
 
 - **Sequential Implementation**: Hierarchical algorithm for reducing computational complexity by approximating distant groups of particles as single entities.
 
