@@ -81,13 +81,13 @@ void SequentialAPUpdate(const int n, T *m, T *p, T *v, const T dt) {
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
 template <typename T>
-void SequentialAPSimulateV1(int n, T dt, T tEnd) {
+void SequentialAPSimulateV1(int n, T dt, T tEnd, int seed) {
   T *m = new T[n];
   T *p = new T[3 * n];
   T *v = new T[3 * n];
 
   // Init Bodies
-  InitAos<T>(n, m, p, v);
+  InitAos<T>(n, m, p, v, seed);
 
 #ifdef MONITOR_ENERGY
   T ek = Ek<T>(n, m, v);
@@ -158,9 +158,12 @@ int main(int argc, char **argv) {
     std::cerr << "Must specify the number of bodies" << std::endl;
     exit(1);
   }
+  int nbody = atoi(argv[1]);
+  int seed = 0;
   if (argc == 3)
-    srand(atoi(argv[2]));
-  else
-    srand(0);
-  SequentialAPSimulateV1<MY_T>(atoi(argv[1]), 0.01, 1);
+    seed = atoi(argv[2]);
+#ifndef OMP
+  srand(seed);
+#endif
+  SequentialAPSimulateV1<MY_T>(nbody, 0.01, 1, seed);
 }

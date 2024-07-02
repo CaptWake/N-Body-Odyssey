@@ -223,14 +223,16 @@ int main (int argc, char **argv) {
   cudaMallocHost(&h_v, n * sizeof(float4));
 
   // Init Bodies
-  //TIMERSTART(init)
+  TIMERSTART(init)
   InitBodies(n, h_p, h_v, seed);
+#ifdef MONITOR_ENERGY
   {
   float ek = Ek(n, h_v);
   float ep = Ep(n, h_p);
   std::cout << "Etot: " <<ek+ep <<std::endl;
   }
-  //TIMERSTOP(init)
+#endif
+  TIMERSTOP(init)
 
   // Allocate memory on the device
   float4 *d_p, *d_v;
@@ -247,33 +249,37 @@ int main (int argc, char **argv) {
     threadsPerBlock = dim3(MAX_THREADS_PER_BLOCK);
   }
 
-  //TIMERSTART(total)
+  TIMERSTART(total)
   cudaMemcpy(d_p, h_p, n * sizeof(float4), cudaMemcpyHostToDevice);
   cudaMemcpy(d_v, h_v, n * sizeof(float4), cudaMemcpyHostToDevice);
   
-  //TIMERSTART(simulation)
+  TIMERSTART(simulation)
   for (float t = 0; t < 100; t+= dt) {
     ComputeInteractions<<<blocks, threadsPerBlock>>>(n, d_p, d_v, dt );
     UpdatePosition<<<blocks, threadsPerBlock>>>(d_p, d_v, dt);
     cudaMemcpy(h_p, d_p, n * sizeof(float4), cudaMemcpyDeviceToHost);
     cudaMemcpy(h_v, d_v, n * sizeof(float4), cudaMemcpyDeviceToHost);
+#ifdef MONITOR_ENERGY
     {
       float ek = Ek(n, h_v);
       float ep = Ep(n, h_p);
       std::cout << "Etot: " <<ek+ep <<std::endl;
     }
+#endif
   }
   cudaDeviceSynchronize();
-  //TIMERSTOP(simulation)
+  TIMERSTOP(simulation)
 
   //cudaMemcpy(h_p, d_p, n * sizeof(float4), cudaMemcpyDeviceToHost);
   //cudaMemcpy(h_v, d_v, n * sizeof(float4), cudaMemcpyDeviceToHost);
-  //TIMERSTOP(total)
-
-  //float ek = Ek(n, h_v);
-  //float ep = Ep(n, h_p);
-  //std::cout << "Etot: " <<ek+ep <<std::endl;
-  
+  TIMERSTOP(total)
+#ifdef MONITOR_ENERGY
+  {
+  float ek = Ek(n, h_v);
+  float ep = Ep(n, h_p);
+  std::cout << "Etot: " <<ek+ep <<std::endl;
+  }
+#endif
   // Free pinned memory
   cudaFreeHost(h_p);
   cudaFreeHost(h_v);

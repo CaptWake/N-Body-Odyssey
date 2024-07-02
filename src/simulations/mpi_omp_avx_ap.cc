@@ -271,17 +271,23 @@ void MPIAPSimulate(int n, T dt, T tEnd, int seed) {
 // nbody, num thread, seed
 int main(int argc, char **argv) {
   MPI_Init(&argc, &argv);
-  if (argc < 4) {
-    std::cerr << "Must specify the number of bodies, " << std::endl;
+  if (argc < 5) {
+    std::cerr << "Must specify the number of bodies, schedule type, chunk size, number of threads and seed (optional)"
+              << std::endl;
     exit(1);
   }
-  int n = atoi(argv[1]);
-  int num_thread = atoi(argv[2]);
-  int seed = atoi(argv[3]);
-  srand(0);
-  omp_set_schedule(omp_sched_static, n / num_thread);
-  SetNumThread(num_thread);
-  MPIAPSimulate<MY_T>(n, 0.01, 1, seed);
+  int nbody = atoi(argv[1]);
+  char* scheduleType = argv[2];
+  int blockSize = atoi(argv[3]); 
+  int numThread = atoi(argv[4]);
+  int seed = 0;
+
+  if (argc == 6)
+    seed = atoi(argv[5]);
+
+  omp_set_schedule(scheduleType, blockSize);
+  SetNumThread(numThread);
+  MPIAPSimulate<MY_T>(nbody, 0.01, 1, seed);
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
   // mpi_ap(12, 1.0f);

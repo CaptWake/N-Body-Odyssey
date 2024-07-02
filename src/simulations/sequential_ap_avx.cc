@@ -154,7 +154,7 @@ void SequentialAPAVXUpdate(const int n, double *m, double *px, double *py,
 #endif
 
 template <typename T>
-void SequentialAPAVXSimulate(int n, T dt, T tEnd) {
+void SequentialAPAVXSimulate(int n, T dt, T tEnd, int seed) {
   T *m = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
   T *px = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
   T *py = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
@@ -164,7 +164,7 @@ void SequentialAPAVXSimulate(int n, T dt, T tEnd) {
   T *vz = static_cast<T *>(_mm_malloc(n * sizeof(T), 32));
 
   // Init Bodies
-  InitSoa<T>(n, m, px, py, pz, vx, vy, vz);
+  InitSoa<T>(n, m, px, py, pz, vx, vy, vz, seed);
 
 #ifdef MONITOR_ENERGY
   T ek = EkSoa<T>(n, m, vx, vy, vz);
@@ -196,6 +196,12 @@ int main(int argc, char **argv) {
     std::cerr << "Must specify the number of bodies" << std::endl;
     exit(1);
   }
-  srand(0);
-  SequentialAPAVXSimulate<MY_T>(std::stoul(argv[1]), 0.01, 1);
+  int nbody = atoi(argv[1]);
+  int seed = 0;
+  if (argc == 3)
+    seed = atoi(argv[2]);
+#ifndef OMP
+  srand(seed);
+#endif
+  SequentialAPAVXSimulate<MY_T>(nbody, 0.01, 1, seed);
 }

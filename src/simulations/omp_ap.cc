@@ -47,13 +47,13 @@ void OMPAPUpdate(const int n, T *m, T *p, T *v, const T dt) {
 
 // Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
 template <typename T>
-void OMPAPSimulate(int n, T dt, T tEnd) {
+void OMPAPSimulate(int n, T dt, T tEnd, int seed) {
   T *m = new T[n];
   T *p = new T[3 * n];
   T *v = new T[3 * n];
 
   // Init Bodies
-  InitAos<T>(n, m, p, v);
+  InitAos<T>(n, m, p, v, seed);
 
 #ifdef MONITOR_ENERGY
   T ek = Ek<T>(n, m, v);
@@ -65,11 +65,11 @@ void OMPAPSimulate(int n, T dt, T tEnd) {
   for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     OMPAPUpdate<T>(n, m, p, v, dt);
-//#ifdef MONITOR_ENERGY
-//   ek = Ek<T>(n, m, v);
-//    ep = Ep<T>(n, m, p);
-//    std::cout << "Etot: " << ek + ep << std::endl;
-//#endif
+#ifdef MONITOR_ENERGY
+    ek = Ek<T>(n, m, v);
+    ep = Ep<T>(n, m, p);
+    std::cout << "Etot: " << ek + ep << std::endl;
+#endif
   }
 #ifdef MONITOR_ENERGY
   ek = Ek<T>(n, m, v);
@@ -85,13 +85,17 @@ int main(int argc, char **argv) {
               << std::endl;
     exit(1);
   }
-  if(argc == 6)
-    srand(atoi(argv[5]));
-  else
-    srand(0);
+  int nbody = atoi(argv[1]);
+  char* scheduleType = argv[2];
+  int blockSize = atoi(argv[3]); 
+  int numThread = atoi(argv[4]);
+  int seed = 0;
 
-  SetScheduleType(argv[2], atoi(argv[3]));
-  SetNumThread(atoi(argv[4]));
+  if (argc == 6)
+    seed = atoi(argv[5]);
 
-  OMPAPSimulate<MY_T>(atoi(argv[1]), 0.01, 1);
+  SetScheduleType(scheduleType, blockSize);
+  SetNumThread(numThread);
+
+  OMPAPSimulate<MY_T>(nbody, 0.01, 1, seed);
 }

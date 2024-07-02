@@ -439,10 +439,14 @@ int main(int argc, char **argv) {
     std::cerr << "Must specify the number of bodies" << std::endl;
     exit(1);
   }
+  int nbody = atoi(argv[1]);
+  int seed = 0;
+  if (argc == 3)
+    seed = atoi(argv[2]);
 #ifndef OMP
-  srand(atoi(argv[2]));
+  srand(seed);
 #endif
-  MPIAPSimulateV3<MY_T>(atoi(argv[1]), 0.01, 1, atoi(argv[2]));
+  MPIAPSimulateV3<MY_T>(nbody, 0.01, 1, seed);
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
 }
