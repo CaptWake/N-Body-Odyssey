@@ -42,12 +42,12 @@ void InitPosVel(const int n, float4 *p, float4 *v) {
   float R, X, Y;
   float mi = _M / n;
   for (int i = 0; i < n; ++i) {
-    R = frand();
-    X = acosf(1.0f - 2.0f * frand());
-    Y = frand() * 2.0f * _PI;
+    R = fdrand<float>();
+    X = acosf(1.0f - 2.0f * fdrand<float>());
+    Y = fdrand<float>() * 2.0f * _PI;
     // https://www.researchgate.net/figure/Figure-A1-Spherical-coordinates_fig8_284609648
     p[i] = make_float4(R * sinf(X) * cosf(Y), R * sinf(X) * sinf(Y), R * cosf(X), mi);
-    v[i] = make_float4(1.0f - 2.0f * frand(), 1.0f - 2.0f * frand(), 1.0f - 2.0f * frand(), mi);
+    v[i] = make_float4(1.0f - 2.0f * fdrand<float>(), 1.0f - 2.0f * fdrand<float>(), 1.0f - 2.0f * fdrand<float>(), mi);
   }
 }
 
@@ -190,12 +190,11 @@ int main (int argc, char **argv) {
     hipLaunchKernelGGL(ComputeInteractions /* compute kernel*/, 
                         blocks, threadsPerBlock, 0/*dynamic shared*/, 0/*stream*/, 
                         n, d_p, d_v, dt /* arguments to the compute kernel */);
-    HIP_CHECK(hipDeviceSynchronize())
     hipLaunchKernelGGL(UpdatePosition,
                         blocks, threadsPerBlock, 0/*dynamic shared*/, 0/*stream*/, 
                         d_p, d_v, dt /* arguments to the compute kernel */);
-    HIP_CHECK(hipDeviceSynchronize())
   }
+  HIP_CHECK(hipDeviceSynchronize());
   TIMERSTOP(simulation)
 
   HIP_CHECK(hipMemcpy(h_p, d_p, n * sizeof(float4), hipMemcpyDeviceToHost))

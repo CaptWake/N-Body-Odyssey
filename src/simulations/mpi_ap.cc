@@ -1,6 +1,7 @@
 #include "simulations/mpi_ap.h"
 
 #include <mpi.h>
+#include <omp.h>
 
 #include <cstring>
 #include <iostream>
@@ -9,13 +10,44 @@
 #include "utilities/nbody_helpers.h"
 #include "utilities/time_utils.h"
 
-void MPIAPUpdate(int localN, int n, const float *__restrict__ m,
-                 const float *__restrict__ p, float *a,
-                 float *__restrict__ m_rec, float *__restrict__ p_rec) {
-  float *__restrict__ ai;
-  float px, py, pz;
+#ifdef DOUBLE
+#define MPI_TYPE MPI_DOUBLE
+#define MY_T double
+#else
+#define MPI_TYPE MPI_FLOAT
+#define MY_T float
+#endif
+
+TIMERINIT(scatter)
+TIMERINIT(broadcast)
+TIMERINIT(gather)
+TIMERINIT(allgather)
+TIMERINIT(simulation)
+TIMERINIT(waitany)
+TIMERINIT(init)
+
+/**
+ * Updates the acceleration of particles using the MPI All-Pairs algorithm.
+ *
+ * @tparam T The data type of the particles' properties.
+ * @param localN The number of particles in the local process.
+ * @param n The total number of particles.
+ * @param m An array of masses of the particles.
+ * @param p An array of positions of the particles.
+ * @param a An array to store the accelerations of the particles.
+ * @param m_rec An array to receive the masses of particles from other
+ * processes.
+ * @param p_rec An array to receive the positions of particles from other
+ * processes.
+ */
+template <typename T>
+void MPIAPUpdate(int localN, int n, const T *__restrict__ m,
+                 const T *__restrict__ p, T *a, T *__restrict__ m_rec,
+                 T *__restrict__ p_rec) {
+  T *__restrict__ ai;
+  T px, py, pz;
   long i, j;
-  float dx, dy, dz, D;
+  T dx, dy, dz, D;
 
   // Force Calculation with Locals.
   for (i = 0; i < localN; ++i) {
@@ -34,7 +66,7 @@ void MPIAPUpdate(int localN, int n, const float *__restrict__ m,
       dz = p[3 * j + 2] - pz;
       D = dx * dx + dy * dy + dz * dz;
       D += _SOFTENING * _SOFTENING;
-      D = 1.0f / (D * sqrtf(D));
+      D = 1.0 / (D * sqrt(D));
       ai[0] += m[j] * dx * D;
       ai[1] += m[j] * dy * D;
       ai[2] += m[j] * dz * D;
@@ -45,7 +77,7 @@ void MPIAPUpdate(int localN, int n, const float *__restrict__ m,
       dz = p[3 * j + 2] - pz;
       D = dx * dx + dy * dy + dz * dz;
       D += _SOFTENING * _SOFTENING;
-      D = 1.0f / (D * sqrtf(D));
+      D = 1.0 / (D * sqrt(D));
       ai[0] += m[j] * dx * D;
       ai[1] += m[j] * dy * D;
       ai[2] += m[j] * dz * D;
@@ -59,15 +91,15 @@ void MPIAPUpdate(int localN, int n, const float *__restrict__ m,
   MPI_Status stat;
 
   // fill send buffers initially
-  memcpy(m_rec, m, sizeof(float) * localN);
-  memcpy(p_rec, p, sizeof(float) * localN * 3);
+  memcpy(m_rec, m, sizeof(T) * localN);
+  memcpy(p_rec, p, sizeof(T) * localN * 3);
 
   for (int rounds = 1; rounds < world_size; ++rounds) {
     // fprintf(stderr, "Current rank: %d, src rank: %d, dest rank: %d\n",
     // world_rank, dst_rank, src_rank);
     MPI_Sendrecv_replace(m_rec,
                          localN,
-                         MPI_FLOAT,
+                         MPI_TYPE,
                          dst_rank,
                          0,
                          src_rank,
@@ -76,7 +108,7 @@ void MPIAPUpdate(int localN, int n, const float *__restrict__ m,
                          &stat);
     MPI_Sendrecv_replace(p_rec,
                          localN * 3,
-                         MPI_FLOAT,
+                         MPI_TYPE,
                          dst_rank,
                          0,
                          src_rank,
@@ -109,9 +141,20 @@ void MPIAPUpdate(int localN, int n, const float *__restrict__ m,
   }
 }
 
-static inline void performNBodyStep(const int localN, float *m, float *p,
-                                    float *v, MPI_Request *requests,
-                                    const float dt) {
+/**
+ * Performs a single step of the N-body simulation.
+ *
+ * @tparam T The data type of the arrays.
+ * @param localN The number of particles in the local process.
+ * @param m The array of masses.
+ * @param p The array of positions.
+ * @param v The array of velocities.
+ * @param requests The array of MPI requests.
+ * @param dt The time step.
+ */
+template <typename T>
+static inline void performNBodyStep(const int localN, T *m, T *p, T *v,
+                                    MPI_Request *requests, const T dt) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -119,22 +162,23 @@ static inline void performNBodyStep(const int localN, float *m, float *p,
   int index;
   MPI_Status status;
   for (int n = 0; n < nproc; ++n) {
+    TIMERSTART(waitany)
     MPI_Waitany(nproc, requests, &index, &status);
     int k = status.MPI_SOURCE;
     for (int i = my_rank * localN * 3; i < (my_rank + 1) * localN * 3; i += 3) {
-      float fx = 0.0f;
-      float fy = 0.0f;
-      float fz = 0.0f;
+      T fx = 0.0;
+      T fy = 0.0;
+      T fz = 0.0;
       for (int j = k * localN * 3; j < (k + 1) * localN * 3; j += 3) {
-        auto m2_id = j / 3;
+        uint64_t m2_id = j / 3;
         // compute distance pair
-        auto dx = p[j] - p[i];
-        auto dy = p[j + 1] - p[i + 1];
-        auto dz = p[j + 2] - p[i + 2];
+        T dx = p[j] - p[i];
+        T dy = p[j + 1] - p[i + 1];
+        T dz = p[j + 2] - p[i + 2];
 
-        auto d = dx * dx + dy * dy + dz * dz + _SOFTENING * _SOFTENING;
-        auto d_inv = 1.0f / sqrtf(d);
-        auto d_inv3 = d_inv * d_inv * d_inv;
+        T d = dx * dx + dy * dy + dz * dz + _SOFTENING * _SOFTENING;
+        T d_inv = 1.0 / sqrt(d);
+        T d_inv3 = d_inv * d_inv * d_inv;
 
         fx += d_inv3 * m[m2_id] * dx;
         fy += d_inv3 * m[m2_id] * dy;
@@ -153,56 +197,77 @@ static inline void performNBodyStep(const int localN, float *m, float *p,
   }
 }
 
-void MPIAPSimulate(uint64_t n, float dt, float tEnd) {
+/**
+ * Simulates the n-body problem using the MPI parallelization framework.
+ *
+ * @tparam T The data type for the simulation variables.
+ * @param n The total number of bodies in the simulation.
+ * @param dt The time step for the simulation.
+ * @param tEnd The end time for the simulation.
+ */
+template <typename T>
+void MPIAPSimulate(uint64_t n, T dt, T tEnd) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
   // we assume that n is a multiple of nproc
   int localN = n / nproc;
-  float *pp = nullptr, *vv = nullptr, *aa = nullptr, *mm = nullptr;
+  T *pp = nullptr, *vv = nullptr, *aa = nullptr, *mm = nullptr;
 
-  float *p = new float[localN * 3];
-  float *v = new float[localN * 3];
-  float *m = new float[localN];
-  float *a = new float[localN * 3];
-  float *p_rec = new float[localN * 3];
-  float *m_rec = new float[localN * 3];
+  T *p = new T[localN * 3];
+  T *v = new T[localN * 3];
+  T *m = new T[localN];
+  T *a = new T[localN * 3];
+  T *p_rec = new T[localN * 3];
+  T *m_rec = new T[localN * 3];
 
   if (my_rank == 0) {
     // Init Bodies
-    mm = new float[n];
-    pp = new float[3 * n];
-    vv = new float[3 * n];
-    aa = new float[3 * n];
-    InitAos(n, mm, pp, vv, aa);
+    mm = new T[n];
+    pp = new T[3 * n];
+    vv = new T[3 * n];
+    aa = new T[3 * n];
+    InitAos<T>(n, mm, pp, vv, aa);
   }
 
+  TIMERSTART(scatter)
   MPI_Scatter(
-      pp, localN * 3, MPI_FLOAT, p, localN * 3, MPI_FLOAT, 0, MPI_COMM_WORLD);
+      pp, localN * 3, MPI_TYPE, p, localN * 3, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Scatter(
-      vv, localN * 3, MPI_FLOAT, v, localN * 3, MPI_FLOAT, 0, MPI_COMM_WORLD);
+      vv, localN * 3, MPI_TYPE, v, localN * 3, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Scatter(
-      aa, localN * 3, MPI_FLOAT, a, localN * 3, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Scatter(mm, localN, MPI_FLOAT, m, localN, MPI_FLOAT, 0, MPI_COMM_WORLD);
+      aa, localN * 3, MPI_TYPE, a, localN * 3, MPI_TYPE, 0, MPI_COMM_WORLD);
+  MPI_Scatter(mm, localN, MPI_TYPE, m, localN, MPI_TYPE, 0, MPI_COMM_WORLD);
+  TIMERSTOP(scatter)
 
   // Simulation Loop
-  for (float t = 0.0f; t < tEnd; t += dt) {
-    performNBodyHalfStepA(localN, dt, p, v, a, m);
+  TIMERSTART(simulation)
+  for (T t = 0.0f; t < tEnd; t += dt) {
+    performNBodyHalfStepA<T>(localN, dt, p, v, a, m);
     // Update Bodies
-    MPIAPUpdate(localN, n, m, p, a, m_rec, p_rec);
-    performNBodyHalfStepB(localN, dt, p, v, a, m);
+    MPIAPUpdate<T>(localN, n, m, p, a, m_rec, p_rec);
+    performNBodyHalfStepB<T>(localN, dt, p, v, a, m);
   }
+  TIMERSTOP(simulation)
 
+  TIMERSTART(gather)
   MPI_Gather(
-      p, localN * 3, MPI_FLOAT, pp, localN * 3, MPI_FLOAT, 0, MPI_COMM_WORLD);
+      p, localN * 3, MPI_TYPE, pp, localN * 3, MPI_TYPE, 0, MPI_COMM_WORLD);
   MPI_Gather(
-      v, localN * 3, MPI_FLOAT, vv, localN * 3, MPI_FLOAT, 0, MPI_COMM_WORLD);
+      v, localN * 3, MPI_TYPE, vv, localN * 3, MPI_TYPE, 0, MPI_COMM_WORLD);
+  TIMERSTOP(gather)
+
+  TIMERPRINT(scatter)
+  TIMERPRINT(gather)
+  TIMERPRINT(simulation)
+
+  MPI_Barrier(MPI_COMM_WORLD);
 
   if (my_rank == 0) {
-    float Epot = Ep(n, mm, pp);
-    float Ekin = Ek(n, mm, vv);
-    float E0 = Epot + Ekin;
+    T Epot = Ep<T>(n, mm, pp);
+    T Ekin = Ek<T>(n, mm, vv);
+    T E0 = Epot + Ekin;
 
     fprintf(stderr, "Ekin: %.15g\nEpot: %.15g\n", Ekin, Epot);
     fprintf(stderr, "Eend: %.15g\n", E0);
@@ -221,79 +286,111 @@ void MPIAPSimulate(uint64_t n, float dt, float tEnd) {
   delete[] m_rec;
 }
 
-// Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
-void MPIAPSimulateV2(int n, float dt, float tEnd) {
+/**
+ * Simulates the N-body problem using the MPI library.
+ *
+ * @tparam T The data type for the simulation.
+ * @param n The number of bodies in the simulation.
+ * @param dt The time step for the simulation.
+ * @param tEnd The end time for the simulation.
+ * @param seed The seed for the random number generator.
+ */
+// Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif
+template <typename T>
+void MPIAPSimulateV2(int n, T dt, T tEnd, int seed) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
   // we assume that n is a multiple of nproc
   int localN = n / nproc;
-  float *m = new float[n];
-  float *p = new float[3 * n];
-  float *v = new float[3 * n];
+  T *m = new T[n];
+  T *p = new T[3 * n];
+  T *v = new T[3 * n];
 
-  if (my_rank == 0)
+  if (my_rank == 0) {
     // Init Bodies
-    InitAos(n, m, p, v);
+    TIMERSTART(init)
+    InitAos<T>(n, m, p, v, seed);
+    TIMERSTOP(init)
+    TIMERPRINT(init)
+  }
 
   MPI_Request *requests = (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
 
-  MPI_Bcast(m, n, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  TIMERSTART(simulation)
+  TIMERSTART(broadcast)
+  MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
+  TIMERSTOP(broadcast)
+  TIMERPRINT(broadcast)
+
+  TIMERSTART(scatter)
   MPI_Scatter(p,
               localN * 3,
-              MPI_FLOAT,
+              MPI_TYPE,
               p + my_rank * localN * 3,
               localN * 3,
-              MPI_FLOAT,
+              MPI_TYPE,
               0,
               MPI_COMM_WORLD);
   MPI_Scatter(v,
               localN * 3,
-              MPI_FLOAT,
+              MPI_TYPE,
               v + my_rank * localN * 3,
               localN * 3,
-              MPI_FLOAT,
+              MPI_TYPE,
               0,
               MPI_COMM_WORLD);
+  TIMERSTOP(scatter)
+  TIMERPRINT(scatter)
 
   int it = 0;
   // Simulation Loop
-  for (float t = 0.0f; t < tEnd; t += dt) {
+  for (T t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
     for (int i = 0; i < nproc; ++i) {
+      TIMERSTART(waitany)
       MPI_Isend(p + my_rank * localN * 3,
                 localN * 3,
-                MPI_FLOAT,
+                MPI_TYPE,
                 i,
                 it,
                 MPI_COMM_WORLD,
                 &requests[i]);
       MPI_Irecv(p + i * localN * 3,
                 localN * 3,
-                MPI_FLOAT,
+                MPI_TYPE,
                 i,
                 it,
                 MPI_COMM_WORLD,
                 &requests[i]);
+      TIMERSTOP(waitany)
     }
-    performNBodyStep(localN, m, p, v, requests, dt);
+    performNBodyStep<T>(localN, m, p, v, requests, dt);
     ++it;
   }
 
+  TIMERSTART(gather)
   MPI_Gather(v + my_rank * localN * 3,
              localN * 3,
-             MPI_FLOAT,
+             MPI_TYPE,
              v,
              3 * localN,
-             MPI_FLOAT,
+             MPI_TYPE,
              0,
              MPI_COMM_WORLD);
+  TIMERSTOP(gather)
+  TIMERPRINT(gather)
 
+  TIMERSTOP(simulation)
+  TIMERPRINT(waitany)
+  TIMERPRINT(simulation)
+
+  MPI_Barrier(MPI_COMM_WORLD);
   if (my_rank == 0) {
-    float Epot = Ep(n, m, p);
-    float Ekin = Ek(n, m, v);
-    float E0 = Epot + Ekin;
+    T Epot = Ep<T>(n, m, p);
+    T Ekin = Ek<T>(n, m, v);
+    T E0 = Epot + Ekin;
 
     fprintf(stderr, "Ekin: %.15g\nEpot: %.15g\n", Ekin, Epot);
     fprintf(stderr, "Eend: %.15g\n", E0);
@@ -304,30 +401,43 @@ void MPIAPSimulateV2(int n, float dt, float tEnd) {
   delete[] v;
 }
 
-// Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif//
-void MPIAPSimulateV3(int n, float dt, float tEnd) {
+/**
+ * Simulates the MPIAP system using the Verlet integration method.
+ *
+ * @tparam T The data type of the simulation variables.
+ * @param n The number of bodies in the system.
+ * @param dt The time step size.
+ * @param tEnd The end time of the simulation.
+ * @param seed The seed for the random number generator.
+ */
+// Euler step https://en.wikipedia.org/wiki/File:Euler_leapfrog_comparison.gif
+template <typename T>
+void MPIAPSimulateV3(int n, T dt, T tEnd, int seed) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
   // we assume that n is a multiple of nproc
   int localN = n / nproc;
-  float *m = new float[n];
-  float *p = new float[3 * n];
-  float *v = new float[3 * n];
-  float *a = new float[3 * n];
+  T *m = new T[n];
+  T *p = new T[3 * n];
+  T *v = new T[3 * n];
+  T *a = new T[3 * n];
 
-  float *p_ = new float[localN * 3];
-  float *v_ = new float[localN * 3];
+  T *p_ = new T[localN * 3];
+  T *v_ = new T[localN * 3];
 
   if (my_rank == 0)
     // Init Bodies
-    InitAos(n, m, p, v, a);
+    InitAos<T>(n, m, p, v, seed, a);
 
-  MPI_Bcast(m, n, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(p, 3 * n, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(v, 3 * n, MPI_FLOAT, 0, MPI_COMM_WORLD);
-  MPI_Bcast(a, 3 * n, MPI_FLOAT, 0, MPI_COMM_WORLD);
+  TIMERSTART(simulation)
+  TIMERSTART(broadcast)
+  MPI_Bcast(m, n, MPI_TYPE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(p, 3 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(v, 3 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
+  MPI_Bcast(a, 3 * n, MPI_TYPE, 0, MPI_COMM_WORLD);
+  TIMERSTOP(broadcast)
 
   for (int i = 0; i < localN * 3; i += 3) {
     p_[i] = p[my_rank * localN * 3 + i];
@@ -342,22 +452,29 @@ void MPIAPSimulateV3(int n, float dt, float tEnd) {
   // Simulation Loop
   for (float t = 0.0f; t < tEnd; t += dt) {
     // Update Bodies
-    performNBodyStep(localN, n, m, p, p_, v, v_, dt);
+    performNBodyStep<T>(localN, n, m, p, p_, v, v_, dt);
+    TIMERSTART(allgather)
     MPI_Allgather(
-        p_, 3 * localN, MPI_FLOAT, p, 3 * localN, MPI_FLOAT, MPI_COMM_WORLD);
+        p_, 3 * localN, MPI_TYPE, p, 3 * localN, MPI_TYPE, MPI_COMM_WORLD);
     MPI_Allgather(
-        v_, 3 * localN, MPI_FLOAT, v, 3 * localN, MPI_FLOAT, MPI_COMM_WORLD);
+        v_, 3 * localN, MPI_TYPE, v, 3 * localN, MPI_TYPE, MPI_COMM_WORLD);
+    TIMERSTOP(allgather)
   }
+  TIMERSTOP(simulation)
 
+  TIMERPRINT(broadcast)
+  TIMERPRINT(simulation)
+  TIMERPRINT(allgather)
+
+  MPI_Barrier(MPI_COMM_WORLD);
   if (my_rank == 0) {
-    float Epot = Ep(n, m, p);
-    float Ekin = Ek(n, m, v);
-    float E0 = Epot + Ekin;
+    T Epot = Ep<T>(n, m, p);
+    T Ekin = Ek<T>(n, m, v);
+    T E0 = Epot + Ekin;
 
-    fprintf(stderr, "Ekin: %.15g\nEpot: %.15g\n", Ekin, Epot);
-    fprintf(stderr, "Eend: %.15g\n", E0);
+    printf("Ekin: %.15g\nEpot: %.15g\n", Ekin, Epot);
+    printf("Eend: %.15g\n", E0);
   }
-
   delete[] m;
   delete[] p;
   delete[] v;
@@ -372,11 +489,13 @@ int main(int argc, char **argv) {
     std::cerr << "Must specify the number of bodies" << std::endl;
     exit(1);
   }
+  int nbody = atoi(argv[1]);
   int seed = 0;
+  if (argc == 3) seed = atoi(argv[2]);
+#ifndef OMP
   srand(seed);
-  TIMERSTART(simulation)
-  MPIAPSimulateV2(atoi(argv[1]), 0.01, 1);
+#endif
+  MPIAPSimulateV3<MY_T>(nbody, 0.01, 1, seed);
   MPI_Barrier(MPI_COMM_WORLD);
-  TIMERSTOP(simulation)
   MPI_Finalize();
 }
