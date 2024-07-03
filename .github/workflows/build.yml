@@ -18,7 +18,15 @@ jobs:
       - name: Set up C++ Build Environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++ mpich libmpich-dev
+          sudo apt-get install -y g++ curl 
+      
+      - name: Install OpenMPI
+        run: |
+          curl -s https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.3.tar.gz | tar -xz
+          cd openmpi-5.0.3
+          ./configure --prefix=/usr/local 2>&1 | tee config.out
+          make all 2>&1 | tee make.out
+          make install 2>&1 | tee install.out
       
       - name: Install CUDA Toolkit
         run: |
@@ -31,12 +39,5 @@ jobs:
       
       - name: Build Executables
         run: |
-          make nbody_sequential_ap
-          make nbody_sequential_ap_avx
-          make nbody_omp_ap
-          make nbody_mpi_ap
-          make nbody_sequential_bh
-          make nbody_mpi_omp_avx_ap
-          make nbody_cuda_ap_float
-          make nbody_cuda_ap_double
+          make build
           

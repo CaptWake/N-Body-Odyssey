@@ -50,6 +50,8 @@ ALL_EXECUTABLES = nbody_sequential_ap nbody_sequential_ap_avx nbody_omp_ap nbody
 
 all: $(ALL_EXECUTABLES)
 
+build: nbody_sequential_ap nbody_sequential_ap_avx nbody_omp_ap nbody_mpi_ap nbody_mpi_omp_avx_ap nbody_cuda_ap_float nbody_cuda_ap_double
+
 nbody_sequential_ap: $(SRC_DIR)sequential_ap.cc
 	$(CXX) $(CXXFLAGS) $(OPENMP_FLAGS) $(SRC_DIR)sequential_ap.cc $(INCLUDE_DIR) -o $@ -D$(PRECISION) -DOMP #-DMONITOR_ENERGY 
 
