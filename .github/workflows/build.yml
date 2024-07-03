@@ -14,30 +14,20 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-
-      - name: Set up C++ Build Environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y g++ curl 
       
-      - name: Install OpenMPI
-        run: |
-          curl -s https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.3.tar.gz | tar -xz
-          cd openmpi-5.0.3
-          ./configure --prefix=/usr/local 2>&1 | tee config.out
-          make all 2>&1 | tee make.out
-          make install 2>&1 | tee install.out
+      #- name: Install OpenMPI
+      #  run: |
+      #    curl -s https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.3.tar.gz | tar -xz
+      #    cd openmpi-5.0.3
+      #    ./configure --prefix=/usr/local 2>&1 | tee config.out
+      #    make all 2>&1 | tee make.out
+      #    make install 2>&1 | tee install.out
       
       - name: Install CUDA Toolkit
-        run: |
-          wget https://developer.download.nvidia.com/compute/cuda/11.4.0/local_installers/cuda_11.4.0_470.42.01_linux.run
-          sudo sh cuda_11.4.0_470.42.01_linux.run --silent --toolkit --override
-          sudo ln -s /usr/local/cuda-11.4 /usr/local/cuda
-          echo 'export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}' >> ~/.bashrc
-          echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' >> ~/.bashrc
-          source ~/.bashrc
-      
+        uses: Jimver/cuda-toolkit@v0.2.16
+
       - name: Build Executables
         run: |
-          make build
+          make nbody_cuda_ap_float
+          make nbody_cuda_ap_double
           
