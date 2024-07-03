@@ -1,0 +1,33 @@
+name: Build Executables
+
+on:
+  push:
+    branches:
+      - main   # Trigger on push to main branch
+  pull_request:
+    types: [closed]  # Trigger on pull request merge
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up C++ Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ mpich libmpich-dev cuda-toolkit-11-4
+
+      - name: Build Executables
+        run: |
+          make nbody_sequential_ap
+          make nbody_sequential_ap_avx
+          make nbody_omp_ap
+          make nbody_mpi_ap
+          make nbody_sequential_bh
+          make nbody_mpi_omp_avx_ap
+          make nbody_cuda_ap_float
+          make nbody_cuda_ap_double
+          
