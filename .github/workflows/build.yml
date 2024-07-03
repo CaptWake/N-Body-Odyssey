@@ -18,8 +18,17 @@ jobs:
       - name: Set up C++ Build Environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++ mpich libmpich-dev cuda-toolkit-11-4
-
+          sudo apt-get install -y g++ mpich libmpich-dev
+      
+      - name: Install CUDA Toolkit
+        run: |
+          wget https://developer.download.nvidia.com/compute/cuda/11.4.0/local_installers/cuda_11.4.0_470.42.01_linux.run
+          sudo sh cuda_11.4.0_470.42.01_linux.run --silent --toolkit --override
+          sudo ln -s /usr/local/cuda-11.4 /usr/local/cuda
+          echo 'export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}' >> ~/.bashrc
+          echo 'export LD_LIBRARY_PATH=/usr/local/cuda/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' >> ~/.bashrc
+          source ~/.bashrc
+      
       - name: Build Executables
         run: |
           make nbody_sequential_ap
