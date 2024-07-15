@@ -154,7 +154,7 @@ void MPIAPUpdate(int localN, int n, const T *__restrict__ m,
  */
 template <typename T>
 static inline void performNBodyStep(const int localN, T *m, T *p, T *v,
-                                    MPI_Request *requests, const T dt) {
+                                    MPI_Request *requests_snd, MPI_Request *requests_rcv, const T dt) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -163,7 +163,7 @@ static inline void performNBodyStep(const int localN, T *m, T *p, T *v,
   MPI_Status status;
   for (int n = 0; n < nproc; ++n) {
     TIMERSTART(waitany)
-    MPI_Waitany(nproc, requests, &index, &status);
+    MPI_Waitany(nproc, requests_rcv, &index, &status);
     int k = status.MPI_SOURCE;
     for (int i = my_rank * localN * 3; i < (my_rank + 1) * localN * 3; i += 3) {
       T fx = 0.0;
@@ -190,6 +190,7 @@ static inline void performNBodyStep(const int localN, T *m, T *p, T *v,
       v[i + 2] += fz * dt;
     }
   }
+  MPI_Waitall(nproc, requests_snd, MPI_STATUSES_IGNORE);
   for (int i = my_rank * localN * 3; i < (my_rank + 1) * localN * 3; i += 3) {
     p[i] += v[i] * dt;
     p[i + 1] += v[i + 1] * dt;
@@ -316,7 +317,8 @@ void MPIAPSimulateV2(int n, T dt, T tEnd, int seed) {
     TIMERPRINT(init)
   }
 
-  MPI_Request *requests = (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
+  MPI_Request *requests_rcv = (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
+  MPI_Request *requests_snd = (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
 
   TIMERSTART(simulation)
   TIMERSTART(broadcast)
@@ -356,17 +358,17 @@ void MPIAPSimulateV2(int n, T dt, T tEnd, int seed) {
                 i,
                 it,
                 MPI_COMM_WORLD,
-                &requests[i]);
+                &requests_snd[i]);
       MPI_Irecv(p + i * localN * 3,
                 localN * 3,
                 MPI_TYPE,
                 i,
                 it,
                 MPI_COMM_WORLD,
-                &requests[i]);
+                &requests_rcv[i]);
       TIMERSTOP(waitany)
     }
-    performNBodyStep<T>(localN, m, p, v, requests, dt);
+    performNBodyStep<T>(localN, m, p, v, requests_snd, requests_rcv,  dt);
     ++it;
   }
 
@@ -495,7 +497,7 @@ int main(int argc, char **argv) {
 #ifndef OMP
   srand(seed);
 #endif
-  MPIAPSimulateV3<MY_T>(nbody, 0.01, 1, seed);
+  MPIAPSimulateV2<MY_T>(nbody, 0.01, 1, seed);
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
 }
