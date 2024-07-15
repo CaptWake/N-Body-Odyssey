@@ -154,7 +154,8 @@ void MPIAPUpdate(int localN, int n, const T *__restrict__ m,
  */
 template <typename T>
 static inline void performNBodyStep(const int localN, T *m, T *p, T *v,
-                                    MPI_Request *requests_snd, MPI_Request *requests_rcv, const T dt) {
+                                    MPI_Request *requests_snd,
+                                    MPI_Request *requests_rcv, const T dt) {
   int my_rank, nproc;
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &nproc);
@@ -317,8 +318,10 @@ void MPIAPSimulateV2(int n, T dt, T tEnd, int seed) {
     TIMERPRINT(init)
   }
 
-  MPI_Request *requests_rcv = (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
-  MPI_Request *requests_snd = (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
+  MPI_Request *requests_rcv =
+      (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
+  MPI_Request *requests_snd =
+      (MPI_Request *)malloc(nproc * sizeof(MPI_Request));
 
   TIMERSTART(simulation)
   TIMERSTART(broadcast)
@@ -368,7 +371,7 @@ void MPIAPSimulateV2(int n, T dt, T tEnd, int seed) {
                 &requests_rcv[i]);
       TIMERSTOP(waitany)
     }
-    performNBodyStep<T>(localN, m, p, v, requests_snd, requests_rcv,  dt);
+    performNBodyStep<T>(localN, m, p, v, requests_snd, requests_rcv, dt);
     ++it;
   }
 
