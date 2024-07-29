@@ -128,7 +128,7 @@ void InitVelU(int n, T *v, int seed = 0) {
 
 template <typename T>
 void InitAccU(int n, T *a) {
-#pragma omp for
+#pragma omp parallel for
   for (int i = 0; i < n; ++i) {
     a[3 * i] = 0.0;
     a[3 * i + 1] = 0.0;
