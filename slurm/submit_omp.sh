@@ -19,136 +19,136 @@ ap_seq="/beegfs/home/davide.camino/SCPD-Project/nbody_sequential_ap"
 ap_omp="/beegfs/home/davide.camino/SCPD-Project/nbody_omp_ap"
 
 for i in 1 2 3; do
-body=65536
-
-echo "sequential"
-echo "info run $body 1"
-echo "$ap_seq $body $((seed + i))"
-$ap_seq $body $((seed + i))
-
-echo "------------------------------"
-echo "----         STOP         ----"
-echo "------------------------------"
-
-body=65536
-echo "strong scalability static $body"
-for num_threads in "${threads[@]}"; do
-  echo "info run $body $num_threads"
-  echo "command: $ap_omp $body static $(($body / num_threads)) $num_threads $((seed + i))"
-  $ap_omp $body static $(($body / num_threads)) $num_threads $((seed + i))
-done
-
-echo "------------------------------"
-echo "----         STOP         ----"
-echo "------------------------------"
-
-echo "strong scalability dynamic $body"
-for num_threads in "${threads[@]}"; do
-  echo "info run $body $num_threads"
-  echo "command: $ap_omp $body dynamic $((65536 / num_threads)) $num_threads $((seed + i))"
-  $ap_omp $body dynamic $((65536 / num_threads)) $num_threads $((seed + i))
-done
-
-echo "------------------------------"
-echo "----         STOP         ----"
-echo "------------------------------"
-
-body=4096
-echo "strong scalability static $body"
-for num_threads in "${threads[@]}"; do
-  echo "info run $body $num_threads"
-  echo "command: $ap_omp $body static $(($body / num_threads)) $num_threads $((seed + i))"
-  $ap_omp $body static $(($body / num_threads)) $num_threads $((seed + i))
-done
-
-echo "------------------------------"
-echo "----         STOP         ----"
-echo "------------------------------"
-
-echo "strong scalability dynamic $body"
-for num_threads in "${threads[@]}"; do
-  echo "info run $body $num_threads"
-  echo "command: $ap_omp $body dynamic $(($body / num_threads)) $num_threads $((seed + i))"
-  $ap_omp $body dynamic $(($body / num_threads)) $num_threads $((seed + i))
-done
-
-echo "------------------------------"
-echo "----         STOP         ----"
-echo "------------------------------"
-
-body=1024
-echo "strong scalability static $body"
-for num_threads in "${threads[@]}"; do
-  echo "info run $body $num_threads"
-  echo "command: $ap_omp $body static $(($body / num_threads)) $num_threads $((seed + i))"
-  $ap_omp $body static $(($body / num_threads)) $num_threads $((seed + i))
-done
-
-echo "------------------------------"
-echo "----         STOP         ----"
-echo "------------------------------"
-
-echo "strong scalability dynamic $body"
-for num_threads in "${threads[@]}"; do
-  echo "info run $body $num_threads"
-  echo "command: $ap_omp $body dynamic $(($body / num_threads)) $num_threads $((seed + i))"
-  $ap_omp $body dynamic $(($body / num_threads)) $num_threads $((seed + i))
-done
-
-echo "------------------------------"
-echo "----         STOP         ----"
-echo "------------------------------"
-
-body=16384
-echo "weak scalability sqrt step static start at $body"
-for num_threads in "${threads[@]}"; do
-  n_body=$(echo | awk -v t=$num_threads -v b=$body 'BEGIN {print (sqrt(t)*b)}')
-  n_body=$(printf "%.0f" "$n_body")
-  echo "info run $n_body $num_threads"
-  echo "command: $ap_omp $n_body static $((n_body / num_threads)) $num_threads $((seed + i))"
-  $ap_omp $n_body static $((n_body / num_threads)) $num_threads $((seed + i))
-done
-
-echo "------------------------------"
-echo "----         STOP         ----"
-echo "------------------------------"
-
-echo "weak scalability sqrt step dynamic start at $body"
-for num_threads in "${threads[@]}"; do
-  n_body=$(echo | awk -v t=$num_threads -v b=$body 'BEGIN {print (sqrt(t)*b)}')
-  n_body=$(printf "%.0f" "$n_body")
-  echo "info run $n_body $num_threads"
-  echo "command: $ap_omp $n_body dynamic $((n_body / num_threads)) $num_threads $((seed + i))"
-  $ap_omp $n_body dynamic $((n_body / num_threads)) $num_threads $((seed + i))
-done
-
-echo "------------------------------"
-echo "----         STOP         ----"
-echo "------------------------------"
-
-body=4096
-echo "weak scalability static $body"
-for num_threads in "${threads[@]}"; do
-  n_body=$(echo | awk -v t=$num_threads -v b=$body 'BEGIN {print (t*b)}')
-  echo "info run $n_body $num_threads"
-  echo "command: $ap_omp $n_body static $body $num_threads $((seed + i))"
-  $ap_omp $n_body static $body $num_threads $((seed + i))
-done
-
-echo "------------------------------"
-echo "----         STOP         ----"
-echo "------------------------------"
-
-echo "weak scalability dynamic $body"
-for num_threads in "${threads[@]}"; do
-  n_body=$(echo | awk -v t=$num_threads -v b=$body 'BEGIN {print (t*b)}')
-  echo "info run $n_body $num_threads"
-  echo "command: $ap_omp $n_body dynamic $body $num_threads $((seed + i))"
-  $ap_omp $n_body dynamic $body $num_threads $((seed + i))
-done
-
-echo "------------------------------"
-echo "----         STOP         ----"
-echo "------------------------------"
+  body=65536
+  
+  echo "sequential"
+  echo "info run $body 1"
+  echo "$ap_seq $body $((seed + i))"
+  $ap_seq $body $((seed + i))
+  
+  echo "------------------------------"
+  echo "----         STOP         ----"
+  echo "------------------------------"
+  
+  body=65536
+  echo "strong scalability static $body"
+  for num_threads in "${threads[@]}"; do
+    echo "info run $body $num_threads"
+    echo "command: $ap_omp $body static $(($body / num_threads)) $num_threads $((seed + i))"
+    $ap_omp $body static $(($body / num_threads)) $num_threads $((seed + i))
+  done
+  
+  echo "------------------------------"
+  echo "----         STOP         ----"
+  echo "------------------------------"
+  
+  echo "strong scalability dynamic $body"
+  for num_threads in "${threads[@]}"; do
+    echo "info run $body $num_threads"
+    echo "command: $ap_omp $body dynamic $((65536 / num_threads)) $num_threads $((seed + i))"
+    $ap_omp $body dynamic $((65536 / num_threads)) $num_threads $((seed + i))
+  done
+  
+  echo "------------------------------"
+  echo "----         STOP         ----"
+  echo "------------------------------"
+  
+  body=4096
+  echo "strong scalability static $body"
+  for num_threads in "${threads[@]}"; do
+    echo "info run $body $num_threads"
+    echo "command: $ap_omp $body static $(($body / num_threads)) $num_threads $((seed + i))"
+    $ap_omp $body static $(($body / num_threads)) $num_threads $((seed + i))
+  done
+  
+  echo "------------------------------"
+  echo "----         STOP         ----"
+  echo "------------------------------"
+  
+  echo "strong scalability dynamic $body"
+  for num_threads in "${threads[@]}"; do
+    echo "info run $body $num_threads"
+    echo "command: $ap_omp $body dynamic $(($body / num_threads)) $num_threads $((seed + i))"
+    $ap_omp $body dynamic $(($body / num_threads)) $num_threads $((seed + i))
+  done
+  
+  echo "------------------------------"
+  echo "----         STOP         ----"
+  echo "------------------------------"
+  
+  body=1024
+  echo "strong scalability static $body"
+  for num_threads in "${threads[@]}"; do
+    echo "info run $body $num_threads"
+    echo "command: $ap_omp $body static $(($body / num_threads)) $num_threads $((seed + i))"
+    $ap_omp $body static $(($body / num_threads)) $num_threads $((seed + i))
+  done
+  
+  echo "------------------------------"
+  echo "----         STOP         ----"
+  echo "------------------------------"
+  
+  echo "strong scalability dynamic $body"
+  for num_threads in "${threads[@]}"; do
+    echo "info run $body $num_threads"
+    echo "command: $ap_omp $body dynamic $(($body / num_threads)) $num_threads $((seed + i))"
+    $ap_omp $body dynamic $(($body / num_threads)) $num_threads $((seed + i))
+  done
+  
+  echo "------------------------------"
+  echo "----         STOP         ----"
+  echo "------------------------------"
+  
+  body=16384
+  echo "weak scalability sqrt step static start at $body"
+  for num_threads in "${threads[@]}"; do
+    n_body=$(echo | awk -v t=$num_threads -v b=$body 'BEGIN {print (sqrt(t)*b)}')
+    n_body=$(printf "%.0f" "$n_body")
+    echo "info run $n_body $num_threads"
+    echo "command: $ap_omp $n_body static $((n_body / num_threads)) $num_threads $((seed + i))"
+    $ap_omp $n_body static $((n_body / num_threads)) $num_threads $((seed + i))
+  done
+  
+  echo "------------------------------"
+  echo "----         STOP         ----"
+  echo "------------------------------"
+  
+  echo "weak scalability sqrt step dynamic start at $body"
+  for num_threads in "${threads[@]}"; do
+    n_body=$(echo | awk -v t=$num_threads -v b=$body 'BEGIN {print (sqrt(t)*b)}')
+    n_body=$(printf "%.0f" "$n_body")
+    echo "info run $n_body $num_threads"
+    echo "command: $ap_omp $n_body dynamic $((n_body / num_threads)) $num_threads $((seed + i))"
+    $ap_omp $n_body dynamic $((n_body / num_threads)) $num_threads $((seed + i))
+  done
+  
+  echo "------------------------------"
+  echo "----         STOP         ----"
+  echo "------------------------------"
+  
+  body=4096
+  echo "weak scalability static $body"
+  for num_threads in "${threads[@]}"; do
+    n_body=$(echo | awk -v t=$num_threads -v b=$body 'BEGIN {print (t*b)}')
+    echo "info run $n_body $num_threads"
+    echo "command: $ap_omp $n_body static $body $num_threads $((seed + i))"
+    $ap_omp $n_body static $body $num_threads $((seed + i))
+  done
+  
+  echo "------------------------------"
+  echo "----         STOP         ----"
+  echo "------------------------------"
+  
+  echo "weak scalability dynamic $body"
+  for num_threads in "${threads[@]}"; do
+    n_body=$(echo | awk -v t=$num_threads -v b=$body 'BEGIN {print (t*b)}')
+    echo "info run $n_body $num_threads"
+    echo "command: $ap_omp $n_body dynamic $body $num_threads $((seed + i))"
+    $ap_omp $n_body dynamic $body $num_threads $((seed + i))
+  done
+  
+  echo "------------------------------"
+  echo "----         STOP         ----"
+  echo "------------------------------"
 
 done
